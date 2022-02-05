@@ -13,6 +13,8 @@
 #include "main.h"
 #include "bitstream.h"
 
+#include "Simplex_step_300.h"
+
 /* PER HAL Initilization Structures */
 GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_CANRX_PA11,
@@ -67,6 +69,22 @@ q_handle_t q_rx_can;
 
 
 
+Tableau tab  = { 12, 5, {                                           // eg: Size of tableau [4 rows x 5 columns ]
+    {  0.0 , -29.2342 , -29.2342 , -35.081, -35.081,   },           // Max: z = 0.5*x + 3*y + z + 4*w,
+    { 36000 ,  767.0214 ,  767.7813 , 972.6081 ,  960.4240,   },    //    x + y + z + w <= 40 .. b1
+    { 0.0162 , 0.0058 , -0.0034 , 0.0054 , -0.0054,   },            //  -2x - y + z + w <= 10 .. b2
+    { 0.0162 , -0.0056 ,  0.0034 , -0.0054 , 0.0054,   },           //        y     - w <= 10 .. b3
+    { 4.0765, -1, 0, 0, 0, },
+    { 10.57, 0, -1, 0, 0,  },
+    { 9.9283, 0, 0, -1, 0,  },
+    { 8.5383, 0, 0, 0, -1,  },
+    { 6.8717, 1, 0, 0, 0, },
+    { 12.6230, 0, 1, 0, 0,  },
+    { 12.7236, 0, 0, 1, 0,  },
+    { 11.3336, 0, 0, 0, 1,  },
+  }
+};
+
 int main (void)
 {
     /* Data Struct init */
@@ -100,6 +118,8 @@ int main (void)
     taskCreate(bitstream10Hz, 100);
     taskCreate(bitstream100Hz, 10);
     schedStart();
+
+    simplex(&tab);
 
     return 0;
 }
