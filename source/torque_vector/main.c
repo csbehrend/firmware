@@ -8,6 +8,9 @@
 #include "common/phal_L4/gpio/gpio.h"
 #include "common/phal_L4/rcc/rcc.h"
 #include "common/bootloader/bootloader_common.h"
+#include "Layer_0.h"
+#include "tv_data.h"
+#include "rt_nonfinite.h"
 
 
 /* Module Includes */
@@ -107,9 +110,58 @@ int main (void)
     return 0;
 }
 
+
+
+static void argInit_1x4_real_T(double result[4])
+{
+  int idx1;
+  for (idx1 = 0; idx1 < 4; idx1++) {
+    result[idx1] = 0.0;
+  }
+}
+
+static void argInit_1x6_real_T(double result[6])
+{
+  int idx1;
+  for (idx1 = 0; idx1 < 6; idx1++) {
+    result[idx1] = 0.0;
+  }
+}
+
 void blinkTask()
 {
     PHAL_toggleGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
+
+    double dv[6];
+    double FY[4];
+    double Fx_max[4];
+    double b_omega_w_tmp[4];
+    double c_omega_w_tmp[4];
+    double omega_w_tmp[4];
+    double Vg[2];
+    double acker_steer_angles[2];
+    double center_steer_angle_tmp;
+    /* Initialize function 'Layer_0' input arguments. */
+    /* Initialize function input argument 'omega_w'. */
+    argInit_1x4_real_T(omega_w_tmp);
+    center_steer_angle_tmp = 0.0;
+    /* Initialize function input argument 'FZ'. */
+    /* Initialize function input argument 'SL'. */
+    /* Initialize function input argument 'vel'. */
+    /* Call the entry-point 'Layer_0'. */
+    argInit_1x6_real_T(dv);
+    b_omega_w_tmp[0] = omega_w_tmp[0];
+    b_omega_w_tmp[1] = omega_w_tmp[1];
+    b_omega_w_tmp[2] = omega_w_tmp[2];
+    b_omega_w_tmp[3] = omega_w_tmp[3];
+    c_omega_w_tmp[0] = omega_w_tmp[0];
+    c_omega_w_tmp[1] = omega_w_tmp[1];
+    c_omega_w_tmp[2] = omega_w_tmp[2];
+    c_omega_w_tmp[3] = omega_w_tmp[3];
+    Layer_0(omega_w_tmp, &center_steer_angle_tmp, center_steer_angle_tmp,
+            center_steer_angle_tmp, &center_steer_angle_tmp, b_omega_w_tmp,
+            c_omega_w_tmp, dv, acker_steer_angles, FY, Vg, Fx_max);
+
 }
 
 void PHAL_FaltHandler()
