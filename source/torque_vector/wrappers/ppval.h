@@ -2,14 +2,14 @@
  * Academic License - for use in teaching, academic research, and meeting
  * course requirements at degree granting institutions only.  Not for
  * government, commercial, or other organizational use.
- * File: pchip.h
+ * File: ppval.h
  *
  * MATLAB Coder version            : 5.2
- * C/C++ source code generated on  : 28-Apr-2022 13:32:12
+ * C/C++ source code generated on  : 29-Apr-2022 01:05:09
  */
 
-#ifndef PCHIP_H
-#define PCHIP_H
+#ifndef PPVAL_H
+#define PPVAL_H
 
 /* Include Files */
 #include "rtwtypes.h"
@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 /* Function Declarations */
-void pchip(const double xx[4], double v[4]);
+double ppval(const double pp_breaks[10], const double pp_coefs[36], double x);
 
 #ifdef __cplusplus
 }
@@ -29,7 +29,7 @@ void pchip(const double xx[4], double v[4]);
 
 #endif
 /*
- * File trailer for pchip.h
+ * File trailer for ppval.h
  *
  * [EOF]
  */
