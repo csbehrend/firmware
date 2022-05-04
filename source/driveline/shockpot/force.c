@@ -29,6 +29,9 @@ struct Wheel left_rear = {
         .od_vert = 6,
         .cob = 7,
         .coa = 8,
+    },
+    .adc = {
+        .resolution = 1
     }
 };
 
@@ -45,6 +48,9 @@ struct Wheel right_rear = {
         .od_vert = 6,
         .cob = 7,
         .coa = 8,
+    },
+    .adc = {
+        .resolution = 1
     }
 };
 
@@ -196,6 +202,11 @@ const float FORCE_REB_REAR[] = {    // copy data from one of the csv files, give
     -615.468,
 };
 
+const float WEIGHTS[] = {
+    1., 0.951229, 0.904837, 0.860708, 0.818731, 0.778801, 0.740818,
+    0.704688, 0.67032, 0.637628
+};
+
 /*
     Calculates damping force based on the data from dyno tests. The data was digitized and put into corresponding
     *.csv files where the force is interpolted for values 0, 10, 20, ..., 250. This basically implements
@@ -207,15 +218,20 @@ void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start
     // delta_T - time interval between measurements
     // resolution - conversion of ADC step to real length
 
-    float b = 0;             
-    float s0 = 0;
-    float s1 = 0;
-    float s2 = 0;
+    static float b;             
+    static float s0;
+    static float s1;
+    static float s2;
+
+    b = 0;
+    s0 = 0;
+    s1 = 0;
+    s2 = 0;
 
     for (int i = 0; i < n; i++) {
-        s0 += x[(start + i) % n];
-        s1 += i * x[(start + i) % n];
-        s2 += i * i * x[(start + i) % n];
+        s0 += x[(start + i) % n] * WEIGHTS[i];
+        s1 += i * x[(start + i) % n] * WEIGHTS[i];
+        s2 += i * i * x[(start + i) % n] * WEIGHTS[i];
     }
     b = A0 * s0 - A1 * s1 + A2 * s2;   
 

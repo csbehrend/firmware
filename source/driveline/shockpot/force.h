@@ -2,9 +2,13 @@
 #define __FORCE__
 
 //Coefficients for second-oreder polynomial fit
-#define A2          1./35360.
-#define A1          437/8663200.
-#define A0          297/22100
+// #define A2          1./35360.
+// #define A1          12837./8663200.
+// #define A0          297./22100.
+
+#define A2          0.0206012
+#define A1          0.19403
+#define A0          0.281106
 
 #define MAX_V        250         // maximum velocity for which we're able to return damping force value, mm/sec
 #define VEL_SIZE     26          // size of the velocity storage
@@ -76,16 +80,16 @@ void force_rear(float* n_l, float* n_r, int* x_l, int* x_r, int start);
 void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start);
 
 
-#define N_SAMPLE    50
-#define DELTA_T     0.001
+#define N_SAMPLE    10
+#define DELTA_T     1
 
 #define DELTA_REAR   1       // sampling rate of the microcontoller, s
 #define ERROR_REAR   100       // error for the windowing algorithm, needs to be tuned.
-#define N_REAR       50          // number of measurements passed, maximum depth of the algorithm
+#define N_REAR       10          // number of measurements passed, maximum depth of the algorithm
 
 #define DELTA_FRONT   1       // sampling rate of the microcontoller, s
 #define ERROR_FRONT   0.001       // error for the windowing algorithm, needs to be tuned.
-#define N_FRONT       50          // number of measurements passed, maximum depth of the algorithm
+#define N_FRONT       10          // number of measurements passed, maximum depth of the algorithm
 
 #define GAMMA_FRONT   2004.75     // torsion coefficient, m*N/rad
 #define S_FRONT       5           // ARB leverage, m

@@ -15,6 +15,6 @@ typedef struct __attribute__((packed))
 
 volatile extern raw_shock_pots_t raw_shock_pots;
 
-void shockpot1000Hz();
+void shockpot200Hz();
 
 #endif

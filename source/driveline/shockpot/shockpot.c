@@ -29,7 +29,7 @@ void shockpotInit()
 }
 
 
-void shockpot1000Hz()
+void shockpot200Hz()
 {
     shockPots[0][start] = raw_shock_pots.pot_left;
     shockPots[1][start] = raw_shock_pots.pot_right;
