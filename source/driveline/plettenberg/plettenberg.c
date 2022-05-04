@@ -1,6 +1,6 @@
 #include "plettenberg.h"
 
-static void mc_set_startup_params(motor_t *m);
+static bool mc_set_startup_params(motor_t *m);
 static void mc_set_param(uint8_t value, char *param, motor_t *m);
 static int16_t mc_parse(char *rx_buf, uint8_t start, char *search_term, uint32_t *val_addr);
 
@@ -8,9 +8,11 @@ void mc_init(motor_t *m, bool is_inverted, q_handle_t *tx_queue){
     *m = (motor_t) {
         .is_inverted = is_inverted,
         .tx_queue    = tx_queue,
-        .data_valid  = false,
+        .data_stale  = true,
+        .last_parse_time = 0xFFFF0000,
         .motor_state = MC_DISCONNECTED,
-        .last_rx_time = 15000,
+        .init_state = 0,
+        .last_rx_time = 0xFFFF0000,
         .rx_timeout = MC_RX_LARGE_TIMEOUT_MS
     };
 
@@ -36,27 +38,10 @@ void mc_set_power(float power, motor_t *m)
     // mode
     cmd[idx++] = mode;
 
-    // determine which is the shorter command: increment or absolute
-    // int16_t delta = pow_x10 - m->curr_power_x10;
-    // bool is_decrement = delta < 0;
-    // if (is_decrement) delta *= -1;
-
-    // uint8_t incremen_ones   = (delta / 10) % 10;
-    // uint8_t incremen_tenths = delta % 10;
     uint8_t absolute_ones   = (pow_x10 / 10) % 10;
     uint8_t absolute_tenths = pow_x10 % 10;
 
     if (pow_x10 <= 1) cmd[idx - 1] = '0';
-    // else if (delta < 100 && incremen_ones + incremen_tenths < 1 + absolute_ones + absolute_tenths)
-    // {
-    //     /* Incremental Command Mode */
-    //     // ones
-    //     char c = is_decrement ? MC_DECREASE_ONE : MC_INCREASE_ONE;
-    //     for (incremen_ones += idx; idx < incremen_ones; idx++) cmd[idx] = c;
-    //     // tenths
-    //     c = is_decrement ? MC_DECREASE_TENTH : MC_INCREASE_TENTH;
-    //     for (incremen_tenths += idx; idx < incremen_tenths; idx++) cmd[idx] = c;
-    // }
     else
     {
         /* Absolute Command Mode */
@@ -90,14 +75,54 @@ void mc_set_param(uint8_t value, char *param, motor_t *m)
     qSendToBack(m->tx_queue, cmd);
 }
 
-void mc_set_startup_params(motor_t *m)
+bool mc_set_startup_params(motor_t *m)
 {
     // serial mode
     char cmd[MC_MAX_TX_LENGTH];
     uint8_t i = 0;
-    cmd[i++] = MC_SERIAL_MODE;
+    switch(m->init_state)
+    {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+            cmd[i++] = MC_SERIAL_MODE;
+            break;
+        case 6:
+            cmd[i++] = 't';
+            break;
+        // case 2:
+        //     cmd[i++] = 'a';
+        //     break;
+        // case 3:
+        //     cmd[i++] = 's'; // reset params to default
+        //     cmd[i++] = 'd';
+        //     break;
+        // case 4:
+        //     cmd[i++] = 'w';
+        //     cmd[i++] = 'p';
+        //     break;
+        // case 5:
+        //     cmd[i++] = MC_SERIAL_MODE;
+        //     break;
+        // case 6:
+        //     cmd[i++] = 't';
+        //     break;
+        case 11:
+            m->init_state = 0;
+            return true;
+            break;
+    }
     cmd[i++] = '\0';
     qSendToBack(m->tx_queue, cmd);
+    ++m->init_state;
+    return false;
     // TODO: set tmp and curr limits higher, we will do the checking
 }
 
@@ -168,18 +193,21 @@ bool mc_periodic(motor_t *m) {
     {
         m->motor_state = MC_DISCONNECTED;
         m->rx_timeout = MC_RX_LARGE_TIMEOUT_MS;
-        m->data_valid = false;
     }
     else if (m->motor_state == MC_DISCONNECTED)
     {
         m->boot_start_time = sched.os_ticks;
         m->motor_state = MC_INITIALIZING;
+        m->rx_timeout = MC_RX_LARGE_TIMEOUT_MS;
+        m->init_state = 0;
     }
     else if (m->motor_state == MC_INITIALIZING &&
             sched.os_ticks - m->boot_start_time > MC_BOOT_TIME)
     {
-        mc_set_startup_params(m);
-        m->motor_state = MC_CONNECTED;
+        if (mc_set_startup_params(m))
+        {
+            m->motor_state = MC_CONNECTED;
+        }
     }
 
     // Switch from large to small timeout after timeout constraint time
@@ -189,6 +217,8 @@ bool mc_periodic(motor_t *m) {
     {
         m->rx_timeout = MC_RX_SMALL_TIMEOUT_MS;
     }
+
+    //
 
     // 0        9        18       27       36       45         56        66
     // S=3.649V,a=0.000V,PWM= 787,U= 34.9V,I=  3.7A,RPM=  1482,con= 28°C,mot= 26°C
@@ -200,30 +230,27 @@ bool mc_periodic(motor_t *m) {
 
     /* Voltage */
     curr = mc_parse(tmp_rx_buf, curr, "U=", &val_buf);
-    if (curr < 0) return false;
-    m->voltage_x10 = (uint16_t) val_buf;
+    if (curr >= 0) m->voltage_x10 = (uint16_t) val_buf;
 
     /* Current */
-    curr = mc_parse(tmp_rx_buf, curr, "I=", &val_buf);
-    if (curr < 0) return false;
-    m->current_x10 = (uint16_t) val_buf;
+    if (curr >= 0) curr = mc_parse(tmp_rx_buf, curr, "I=", &val_buf);
+    if (curr >= 0) m->current_x10 = (uint16_t) val_buf;
 
     /* RPM */
-    curr = mc_parse(tmp_rx_buf, curr, "RPM=", &val_buf);
-    if (curr < 0) return false;
-    m->rpm = val_buf;
+    if (curr >= 0) curr = mc_parse(tmp_rx_buf, curr, "RPM=", &val_buf);
+    if (curr >= 0) m->rpm = val_buf;
 
     /* Controller temp */
-    curr = mc_parse(tmp_rx_buf, curr, "con=", &val_buf);
-    if (curr < 0) return false;
-    m->controller_temp = (uint8_t) val_buf;
+    if (curr >= 0) curr = mc_parse(tmp_rx_buf, curr, "con=", &val_buf);
+    if (curr >= 0) m->controller_temp = (uint8_t) val_buf;
 
     /* Motor temp */
-    curr = mc_parse(tmp_rx_buf, curr, "mot=", &val_buf);
-    if (curr < 0) return false;
-    m->motor_temp = (uint8_t) val_buf;
+    if (curr >= 0) curr = mc_parse(tmp_rx_buf, curr, "mot=", &val_buf);
+    if (curr >= 0) m->motor_temp = (uint8_t) val_buf;
 
-    m->data_valid = true;
+    // Update parse time
+    if (curr >= 0) m->last_parse_time = sched.os_ticks;
+    m->data_stale = (sched.os_ticks - m->last_parse_time > MC_PARSE_TIMEOUT);
 
-    return true;
+    return curr >= 0;
 }

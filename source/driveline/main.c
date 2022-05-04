@@ -161,10 +161,12 @@ int main(void)
     {
         HardFault_Handler();
     }
+    huart_l.rx_dma_cfg->circular = true;
     if(!PHAL_initUSART(USART_L, &huart_l, APB1ClockRateHz))
     {
         HardFault_Handler();
     }
+    huart_r.rx_dma_cfg->circular = true;
     if(!PHAL_initUSART(USART_R, &huart_r, APB2ClockRateHz))
     {
         HardFault_Handler();
@@ -277,7 +279,6 @@ void commandTorquePeriodic()
         pow_left  = 0.0;
         pow_right = 0.0;
     }
-    // pow_left = 2.5;
     mc_set_power(pow_left,  &motor_left);
     mc_set_power(pow_right, &motor_right);
 }
@@ -293,8 +294,9 @@ void parseDataPeriodic()
     mc_periodic(&motor_left);
     mc_periodic(&motor_right);
 
-    if (!motor_right.data_valid ||
-        !motor_left.data_valid) return;
+    // Only send once both controllers have updated data
+    if (motor_right.data_stale ||
+        motor_left.data_stale) return;
 
     // TODO: shock pots change from raw
     // TODO: move from motor rpm to wheel speed sensors
@@ -348,25 +350,17 @@ void usartTxUpdate()
 }
 
 void USART1_IRQHandler(void) {
-    if (USART1->ISR & USART_ISR_IDLE) {
+    if (USART_L->ISR & USART_ISR_IDLE) {
         motor_left.last_rx_time = sched.os_ticks;
-        // restart reception
-        PHAL_usartRxDma(USART_L, &huart_l, 
-                        (uint16_t *) motor_left.rx_buf, 
-                        MC_MAX_RX_LENGTH);
-        USART1->ICR = USART_ICR_IDLECF;
+        USART_L->ICR = USART_ICR_IDLECF;
     }
 }
 
 void USART2_IRQHandler(void) {
-    if (USART2->ISR & USART_ISR_IDLE) {
+    if (USART_R->ISR & USART_ISR_IDLE) {
         char *tmp;
         motor_right.last_rx_time = sched.os_ticks;
-        // restart reception
-        PHAL_usartRxDma(USART_R, &huart_r, 
-                        (uint16_t *) motor_right.rx_buf, 
-                        MC_MAX_RX_LENGTH);
-        USART2->ICR = USART_ICR_IDLECF;
+        USART_R->ICR = USART_ICR_IDLECF;
     }
 }
 
