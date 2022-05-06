@@ -91,17 +91,14 @@ int main (void)
     NVIC_EnableIRQ(CAN1_RX0_IRQn);
 
     /* Module init */
-    // bitstreamInit();
     schedInit(SystemCoreClock); // See Datasheet DS11451 Figure. 4 for clock tree
     initCANParse(&q_rx_can);
 
     PHAL_writeGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, 1);
 
     /* Task Creation */
-    taskCreate(blinkTask, 500);
-    taskCreate(TorqueVector_main, 15);
-    taskCreate(bitstream10Hz, 100);
-    taskCreate(bitstream100Hz, 10);
+    taskCreate(blinkTask, 2);
+    //taskCreate(TorqueVector_main, 15);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
     schedStart();
@@ -112,8 +109,9 @@ int main (void)
 
 void blinkTask()
 {
-    PHAL_toggleGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
-
+    PHAL_writeGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, 1);
+    TorqueVector_main();
+    PHAL_writeGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, 0);
 }
 
 void PHAL_FaltHandler()

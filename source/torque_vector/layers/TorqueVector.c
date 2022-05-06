@@ -18,10 +18,38 @@ static void main_Layer_2(void);
 
 void TorqueVector_main()
 {
-    main_Layer_0();
-    main_Layer_1();
-    main_Layer_2();
-    main_LP_calc();
+    static VehicleConfiguration_t per_2022 = {
+        .half_track_width = {0.87, 0.8}
+    };
+
+    static int state = 0;
+    switch (state)
+    {
+    case 0:
+        main_Layer_0();
+        state++;
+        break;
+    
+    case 1:
+        main_Layer_1();
+        state++;
+        break;
+
+    case 2:
+        main_Layer_2();
+        state++;
+        break;
+
+    case 3:
+        main_LP_calc();
+        state++;
+        break;
+    default:
+        state++;
+        if (state == 5)
+            state = 0;
+        break;
+    }
 }
 
 /*
@@ -128,6 +156,7 @@ static void main_Layer_0(void)
       center_steer_angle_tmp, center_steer_angle_tmp, center_steer_angle_tmp,
       center_steer_angle_tmp, center_steer_angle_tmp, center_steer_angle_tmp, C,
       acker_steer_angles, FY, Vg, Fx_max, n, R, SA, FX);
+    asm("bkpt");
 }
 
 /*
