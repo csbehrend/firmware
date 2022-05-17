@@ -207,11 +207,7 @@ const float WEIGHTS[] = {
     0.704688, 0.67032, 0.637628
 };
 
-/*
-    Calculates damping force based on the data from dyno tests. The data was digitized and put into corresponding
-    *.csv files where the force is interpolted for values 0, 10, 20, ..., 250. This basically implements
-    first oreder interpolation.
-*/
+
 void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start) {     // second order polynomial fitting
     // x - array of position sensor data, which is cyclically updated
     // start - index of the latest measurement
@@ -239,6 +235,12 @@ void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start
     w->geom.cd = w->adc.resolution * x[start] +  w->adc.adc_0;
 }
 
+
+/*
+    Calculates damping force based on the data from dyno tests. The data was digitized and put into corresponding
+    *.csv files where the force is interpolted for values 0, 10, 20, ..., 250. This basically implements
+    first oreder interpolation.
+*/
 void _get_damp_force (float *f_damp, float v, const float force_reb [VEL_SIZE], const float force_comp [VEL_SIZE]) {
     int val= (int)(floor(fabs(v/10)));
     if (v >= MAX_V) {
