@@ -1,10 +1,9 @@
 #ifndef __FORCE__
 #define __FORCE__
 
+// #define FTR_DRIVELINE_FRONT 1
+// #define FTR_DRIVELINE_REAR 0
 //Coefficients for second-oreder polynomial fit
-// #define A2          1./35360.
-// #define A1          12837./8663200.
-// #define A0          297./22100.
 
 #define A2          0.0206012
 #define A1          0.19403
@@ -14,13 +13,9 @@
 #define VEL_SIZE     26          // size of the velocity storage
 
 //Geometry of the car
-struct Geometry {
+typedef struct _Geometry {
     //Shock pot positions
     // Length
-    const    float oa;
-    const float ob;
-    const float oc;
-    const float od;
     float cd;           // Damper length, updatable
 
     float d_d;
@@ -28,10 +23,6 @@ struct Geometry {
     float d_a;
 
     // Angles and their sines/cosines
-    const float fw_vert;
-    const float od_vert;
-    const float cob;
-    const float coa;
 
     float fw_ob;
     float sin_ob_fw;
@@ -45,70 +36,88 @@ struct Geometry {
 
     // Displpacement for ARB
     float x_a;
-};
+} Geometry;
 
-struct ForceParam {
+typedef struct _ForceParam {
     float f_damp;       // Damping force
     float f_total;      // Total damper force
-    float n;             // Normal force of the wheel
-    float k;            // Spring coefficient
-    float gamma;        // Torsion coefficient
+    float n;            // Normal force of the wheel
     float v;            // Damper velocity
-    float x_0;          // Rest position of the spring, force is determied as:
-                        // F_spring = k * (cd - x_0)
-    float s;            // Leverage of ARB
-};
 
-struct ADCconv {
-    // Model for finding the length is CD = adc_0 + resolution*(ADC measurement)
-    float adc_0;
-    float resolution;
-};
-struct Wheel {
-    struct Geometry geom;
-    struct ForceParam param;
-    struct ADCconv adc;
-};
+} ForceParam;
 
-void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start);
+// typedef struct _ADCconv {
+//     // Model for finding the length is CD = adc_0 + resolution*(ADC measurement)
+//     const float adc_0;
+//     const float resolution;
+// } ADCconv;
+
+typedef struct _Wheel {
+    Geometry geom;
+    ForceParam param;
+    // ADCconv adc;
+} Wheel;
+
+void _get_pot_speed_pos(int* x, Wheel* w, float delta_T, int n, int start);
 void _get_damp_force (float *f_damp, float v, const float force_reb [VEL_SIZE], const float force_comp [VEL_SIZE]);
-void _upadte_geometry (struct Geometry *g);
-void _get_total_force (struct Wheel *w);
-void _get_normal_force (struct Wheel *w, struct Wheel *w_other);
-void _calc_pipeline(int* x_l, int* x_r, struct Wheel *w_l, struct Wheel *w_r, int start);
-void force_rear(float* n_l, float* n_r, int* x_l, int* x_r, int start);
-void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start);
+void _upadte_geometry (Geometry *g);
+void _get_total_force (Wheel *w);
+void _get_normal_force (Wheel *w, Wheel *w_other);
+void _calc_pipeline(int* x_l, int* x_r, Wheel *w_l, Wheel *w_r, int start);
+void normal_force(float* n_l, float* n_r, int* x_l, int* x_r, int start);
+
+#define N_SAMPLE    10                  // Number of position measurements we're using to
+                                        // determine the rate of change of the shockpot position (velocisty)
+#define DELTA_T     1                   // Sampling period of the mictocontroller
+
+// Defines for the front board
+#if (FTR_DRIVELINE_FRONT)
+
+    // Element leghts as defined in the document.
+    #define OA          123
+    #define OB          123
+    #define OC          123
+    #define OD          123
+        
+    // Angles and their sines/cosines as defined in the document
+    #define FW_VERT     123
+    #define OD_VERT     123
+    #define COB         123
+    #define COA         123
+
+    #define GAMMA       2004.75     // Torsion coefficient
+    #define S           5           // ARB leverage, m
+    #define K           146.75      // Spring coefficient
+    #define X_0         123         // Rest position of the spring, force is determied as:
+                                    // F_spring = k * (cd - x_0)
 
 
-#define N_SAMPLE    10
-#define DELTA_T     1
+    #define RESOLUTION    1  // convert ADC value to real numbers, resolution of the ADC, 
+    #define ADC_0         0   // actual displacement when ADC shows 0, in  
 
-#define DELTA_REAR   1       // sampling rate of the microcontoller, s
-#define ERROR_REAR   100       // error for the windowing algorithm, needs to be tuned.
-#define N_REAR       10          // number of measurements passed, maximum depth of the algorithm
+#elif (FTR_DRIVELINE_REAR)
+    // Element leghts as defined in the document.
+    #define OA          123
+    #define OB          123
+    #define OC          123
+    #define OD          123
+        
+    // Angles and their sines/cosines as defined in the document
+    #define FW_VERT     123
+    #define OD_VERT     123
+    #define COB         123
+    #define COA         123
 
-#define DELTA_FRONT   1       // sampling rate of the microcontoller, s
-#define ERROR_FRONT   0.001       // error for the windowing algorithm, needs to be tuned.
-#define N_FRONT       10          // number of measurements passed, maximum depth of the algorithm
+    #define GAMMA         2004.75     // torsion coefficient, m*N/rad
+    #define S             5           // ARB leverage, m
+    #define K             146.75      // spring constant, N/m
+    #define X_0           123
 
-#define GAMMA_FRONT   2004.75     // torsion coefficient, m*N/rad
-#define S_FRONT       5           // ARB leverage, m
-#define COS_A_FRONT   0.74        // cos_alpha
-#define K_FRONT       146.75      // spring constant, N/m
 
-#define GAMMA_REAR   2004.75     // torsion coefficient, lb*in/rad
-#define S_REAR       5           // ARB leverage, 
-#define COS_A_REAR   0.74        // cos_alpha
-#define K_REAR       0           // spring constant, lb/in
+    #define RESOLUTION    1  // convert ADC value to real numbers, resolution of the ADC, 
+    #define ADC_0         0   // actual displacement when ADC shows 0, in  
 
-#define RESOLUTION_REAR  1  // convert ADC value to real numbers, resolution of the ADC, 
-#define ZERO_REAR        0   // actual displacement when ADC shows 0, in  
-
-// ignore it, just calculations
-// 1235 - 1 V - 0 deisplacement 2477 - 2V 1 inch
-
-#define RESOLUTION_FRONT  1  // convert ADC value to real numbers, resolution of the ADC, 
-#define ZERO_FRONT        0   // actual displacement when ADC shows 0
+#endif
 
 
 #endif
