@@ -23,7 +23,7 @@
 /* Module Includes */
 #include "main.h"
 #include "can_parse.h"
-//#include "wheel_speeds.h"
+#include "wheel_speeds.h"
 #include "shockpot.h"
 #include "plettenberg.h"
 
@@ -39,8 +39,8 @@ GPIOInitConfig_t gpio_config[] = {
   GPIO_INIT_USART2TX_PA2,
   GPIO_INIT_USART2RX_PA3,
   // Wheel Speed
-//   GPIO_INIT_AF(WSPEEDR_GPIO_Port, WSPEEDR_Pin, WHEELSPEEDR_AF, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_PULL_UP),
-//   GPIO_INIT_AF(WSPEEDL_GPIO_Port, WSPEEDL_Pin, WHEELSPEEDL_AF, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_PULL_UP),
+  GPIO_INIT_AF(WSPEEDR_GPIO_Port, WSPEEDR_Pin, WHEELSPEEDR_AF, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_PULL_UP),
+  GPIO_INIT_AF(WSPEEDL_GPIO_Port, WSPEEDL_Pin, WHEELSPEEDL_AF, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_PULL_UP),
   // EEPROM
   GPIO_INIT_OUTPUT(WC_GPIO_Port, WC_Pin, GPIO_OUTPUT_LOW_SPEED),
   GPIO_INIT_I2C1_SCL_PB6,
@@ -129,6 +129,8 @@ extern uint32_t AHBClockRateHz;
 extern uint32_t PLLClockRateHz;
 
 /* Function Prototypes */
+void preflightAnimation(void);
+void preflightChecks(void);
 void commandTorquePeriodic();
 void parseDataPeriodic();
 void canTxUpdate();
@@ -161,77 +163,18 @@ int main(void)
     {
         HardFault_Handler();
     }
-    huart_l.rx_dma_cfg->circular = true;
-    if(!PHAL_initUSART(USART_L, &huart_l, APB1ClockRateHz))
-    {
-        HardFault_Handler();
-    }
-    huart_r.rx_dma_cfg->circular = true;
-    if(!PHAL_initUSART(USART_R, &huart_r, APB2ClockRateHz))
-    {
-        HardFault_Handler();
-    }
-    if(!PHAL_initCAN(CAN1, false))
-    {
-        HardFault_Handler();
-    }
-    NVIC_EnableIRQ(CAN1_RX0_IRQn);
-    // if(!PHAL_initPWMIn(TIM1, APB2ClockRateHz / TIM_CLOCK_FREQ, TI1FP1))
-    // {
-    //     HardFault_Handler();
-    // }
-    // TODO: configure TIM2
-    // if(!PHAL_initPWMChannel(TIM1, CC1, CC_INTERNAL, false))
-    // {
-    //     HardFault_Handler();
-    // }
-    if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config, 
-       sizeof(adc_channel_config)/sizeof(ADCChannelConfig_t)))
-    {
-        HardFault_Handler();
-    }
-    if(!PHAL_initDMA(&adc_dma_config))
-    {
-        HardFault_Handler();
-    }
-    PHAL_startTxfer(&adc_dma_config);
-    PHAL_startADC(ADC1);
-
-    // Signify start of initialization
-    PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
-
-    /* Module init */
-    initCANParse(&q_rx_can);
-    // wheelSpeedsInit();
-
-    /* Motor Controllers */
-    // Left
-    mc_init(&motor_left,  M_INVERT_LEFT,  &q_tx_usart_l);
-    USART_L->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
-    NVIC_EnableIRQ(USART1_IRQn);
-    // initial rx request
-    PHAL_usartRxDma(USART_L, &huart_l, 
-                    (uint16_t *) motor_left.rx_buf, 
-                    MC_MAX_RX_LENGTH);
-    // Right
-    mc_init(&motor_right, M_INVERT_RIGHT, &q_tx_usart_r);
-    USART_R->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
-    NVIC_EnableIRQ(USART2_IRQn);
-    // initial rx request
-    PHAL_usartRxDma(USART_R, &huart_r, 
-                    (uint16_t *) motor_right.rx_buf, 
-                    MC_MAX_RX_LENGTH);
-
+    
     /* Task Creation */
     schedInit(SystemCoreClock);
+    configureAnim(preflightAnimation, preflightChecks, 50, 750);
     taskCreate(ledUpdate, 500);
     taskCreate(heartBeat, 100);
     taskCreate(commandTorquePeriodic, 15);
     taskCreate(parseDataPeriodic, 15);
+
     taskCreate(shockpot200Hz, 5);
-    // TODO: shock is very fast, but contains a bunch of floating point arithmetic
-    //taskCreate(shockpot1000Hz, 1);
-    //taskCreate(wheelSpeedsPeriodic(), 15);
+    taskCreate(wheelSpeedsPeriodic, 15);
+
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
     taskCreateBackground(usartTxUpdate);
@@ -243,14 +186,122 @@ int main(void)
     return 0;
 }
 
+void preflightChecks(void) {
+    static uint8_t state;
+
+    switch (state++)
+    {
+        case 0:
+            huart_l.rx_dma_cfg->circular = true;
+            if(!PHAL_initUSART(USART_L, &huart_l, APB1ClockRateHz))
+            {
+                HardFault_Handler();
+            }
+            huart_r.rx_dma_cfg->circular = true;
+            if(!PHAL_initUSART(USART_R, &huart_r, APB2ClockRateHz))
+            {
+                HardFault_Handler();
+            }
+            break;
+        case 1:
+            if(!PHAL_initCAN(CAN1, false))
+            {
+                HardFault_Handler();
+            }
+            NVIC_EnableIRQ(CAN1_RX0_IRQn);
+            break;
+        case 2:
+            if(!PHAL_initPWMIn(TIM1, APB2ClockRateHz / TIM_CLOCK_FREQ, TI1FP1))
+            {
+                HardFault_Handler();
+            }
+            if(!PHAL_initPWMChannel(TIM1, CC1, CC_INTERNAL, false))
+            {
+                HardFault_Handler();
+            }
+            if(!PHAL_initPWMIn(TIM2, APB1ClockRateHz / TIM_CLOCK_FREQ, TI1FP1))
+            {
+                HardFault_Handler();
+            }
+            if(!PHAL_initPWMChannel(TIM2, CC1, CC_INTERNAL, false))
+            {
+                HardFault_Handler();
+            }
+            break;
+        case 3:
+            if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config, 
+            sizeof(adc_channel_config)/sizeof(ADCChannelConfig_t)))
+            {
+                HardFault_Handler();
+            }
+            if(!PHAL_initDMA(&adc_dma_config))
+            {
+                HardFault_Handler();
+            }
+            PHAL_startTxfer(&adc_dma_config);
+            PHAL_startADC(ADC1);
+            break;
+       case 4:
+            /* Module init */
+            initCANParse(&q_rx_can);
+            wheelSpeedsInit();
+            break;
+        case 5:
+            // Left MC
+            mc_init(&motor_left,  M_INVERT_LEFT,  &q_tx_usart_l);
+            USART_L->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
+            NVIC_EnableIRQ(USART1_IRQn);
+            // initial rx request
+            PHAL_usartRxDma(USART_L, &huart_l, 
+                            (uint16_t *) motor_left.rx_buf, 
+                            MC_MAX_RX_LENGTH);
+            break;
+        case 6:
+            // Right MC
+            mc_init(&motor_right, M_INVERT_RIGHT, &q_tx_usart_r);
+            USART_R->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
+            NVIC_EnableIRQ(USART2_IRQn);
+            // initial rx request
+            PHAL_usartRxDma(USART_R, &huart_r, 
+                            (uint16_t *) motor_right.rx_buf, 
+                            MC_MAX_RX_LENGTH);
+            break;
+        default:
+            registerPreflightComplete(1);
+            state = 255; // prevent wrap around
+    }
+}
+
+void preflightAnimation(void) {
+    static uint32_t time;
+
+    PHAL_writeGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin, 0);
+    PHAL_writeGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin, 0);
+    PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
+
+    switch (time++ % 2)
+    {
+        case 0:
+            PHAL_writeGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin, 1);
+            break;
+        case 1:
+            PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
+            break;
+    }
+}
+
 void heartBeat()
 {
     #if (FTR_DRIVELINE_FRONT)
     SEND_FRONT_DRIVELINE_HB(q_tx_can, motor_left.motor_state,
                                       motor_right.motor_state);
+    SEND_FRONT_MOTOR_INIT(q_tx_can, motor_left.init_state, motor_right.init_state);
+
     #elif (FTR_DRIVELINE_REAR)
     SEND_REAR_DRIVELINE_HB(q_tx_can, motor_left.motor_state,
                                       motor_right.motor_state);
+    SEND_FRONT_MOTOR_INIT(q_tx_can, motor_right.init_state, motor_right.init_state);
+
     #endif
 }
 /**
@@ -295,17 +346,16 @@ void parseDataPeriodic()
     mc_periodic(&motor_right);
 
     // Only send once both controllers have updated data
-    if (motor_right.data_stale ||
-        motor_left.data_stale) return;
+    // if (motor_right.data_stale ||
+    //     motor_left.data_stale) return;
 
     // TODO: shock pots change from raw
-    // TODO: move from motor rpm to wheel speed sensors
     // TODO: use motor rpm to verify wheel speed sensors?
 #if (FTR_DRIVELINE_REAR)
-    SEND_REAR_WHEEL_DATA(q_tx_can, motor_left.rpm, motor_right.rpm,
+    SEND_REAR_WHEEL_DATA(q_tx_can, wheel_speeds.left_kph_x100, wheel_speeds.right_kph_x100,
                          raw_shock_pots.pot_left, raw_shock_pots.pot_right);
 #elif (FTR_DRIVELINE_FRONT)
-    SEND_FRONT_WHEEL_DATA(q_tx_can, motor_left.rpm, motor_right.rpm,
+    SEND_FRONT_WHEEL_DATA(q_tx_can, wheel_speeds.left_kph_x100, wheel_speeds.right_kph_x100,
                          raw_shock_pots.pot_left, raw_shock_pots.pot_right);
 #endif
 
