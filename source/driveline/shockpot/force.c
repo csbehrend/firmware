@@ -4,6 +4,11 @@
 #include <errno.h>
 #include "force.h"
 
+#define VER1     1
+#define VER2     0
+#define VER3     0
+#define VER4     0
+
 /*  
     
     Function foe determining the force based on a
@@ -146,21 +151,38 @@ const float WEIGHTS[] = {
 };
 
 
+#if (VER1)
+
+void _get_pot_speed_pos(int* x, Wheel* w, int start) {     // second order polynomial fitting
+    // x - array of position sensor data, which is cyclically updated
+    // start - index of the latest measurement
+
+    float b = 0;             
+    float s0 = 0;
+    float s1 = 0;
+    float s2 = 0;
+
+    for (int i = 0; i < N_SAMPLE; i++) {
+        s0 += x[(start + i) % N_SAMPLE] * WEIGHTS[i];
+        s1 += i * x[(start + i) % N_SAMPLE] * WEIGHTS[i];
+        s2 += i * i * x[(start + i) % N_SAMPLE] * WEIGHTS[i];
+    }
+    
+    b = A0 * s0 - A1 * s1 + A2 * s2;   
+
+    w->param.v = RESOLUTION * b / DELTA_T;
+    w->geom.cd = RESOLUTION * x[start] +  ADC_0;
+}
+
+#elif (VER2)
+
+const float IMPULSE_RESPONSE[] = {
+    
+}
+
 void _get_pot_speed_pos(int* x, Wheel* w, float delta_T, int n, int start) {     // second order polynomial fitting
     // x - array of position sensor data, which is cyclically updated
     // start - index of the latest measurement
-    // delta_T - time interval between measurements
-    // resolution - conversion of ADC step to real length
-
-    // static float b;             
-    // static float s0;
-    // static float s1;
-    // static float s2;
-
-    // b = 0;
-    // s0 = 0;
-    // s1 = 0;
-    // s2 = 0;
 
     float b = 0;             
     float s0 = 0;
@@ -179,24 +201,25 @@ void _get_pot_speed_pos(int* x, Wheel* w, float delta_T, int n, int start) {    
     w->geom.cd = RESOLUTION * x[start] +  ADC_0;
 }
 
+#endif
 
 /*
     Calculates damping force based on the data from dyno tests. The data was digitized and put into corresponding
     *.csv files where the force is interpolted for values 0, 10, 20, ..., 250. This basically implements
     first oreder interpolation.
 */
-void _get_damp_force (float *f_damp, float v, const float force_reb [VEL_SIZE], const float force_comp [VEL_SIZE]) {
+void _get_damp_force (float *f_damp, float v) {
     int val= (int)(floor(fabs(v/10)));
     if (v >= MAX_V) {
-        *f_damp = force_reb[VEL_SIZE-1];
+        *f_damp = FORCE_REB[VEL_SIZE-1];
         printf("Damper velocity overshoot (positive, rebound)\n");
     } else if (v <= -MAX_V) {
-        *f_damp = force_comp[VEL_SIZE-1];
+        *f_damp = FORCE_COMP[VEL_SIZE-1];
         printf("Damper velocity overshoot (negative, compresion)\n");
     } else if (v > 0) {
-        *f_damp = (force_reb[val] * (val * 10 + 10 - v) + force_reb[val + 1] * (v - val * 10)) / 10;
+        *f_damp = (FORCE_REB[val] * (val * 10 + 10 - v) + FORCE_REB[val + 1] * (v - val * 10)) / 10;
     } else {
-        *f_damp = (force_comp[val] * (v + val * 10 + 10) + force_comp[val + 1] * (-val * 10 - v)) / 10;
+        *f_damp = (FORCE_COMP[val] * (v + val * 10 + 10) + FORCE_COMP[val + 1] * (-val * 10 - v)) / 10;
     }
 }
 
@@ -205,32 +228,34 @@ void _upadte_geometry (Geometry *g) {
     // update gometry of a suspension node, the comments correspond to the
     // equation numbers in the description document
 
-    g->cos_ocd = (OC*OC + g->cd*g->cd - OD*OD)/(2 * OC * g->cd); // 1
+    g->cos_ocd = (OC*OC + g->cd*g->cd - OD*OD)/(2 * OC * g->cd);        // 1
 
-    g->sin_ocd = sqrt(1 - g->cos_ocd*g->cos_ocd); // 2
+    g->sin_ocd = sqrt(1 - g->cos_ocd*g->cos_ocd);                       // 2
     
-    g->d_d = OC * g->sin_ocd; // 3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+    g->d_d = OC * g->sin_ocd;                                           // 3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
-    g->doc = fabs(asin(sin(g->ocd) * g->cd / OD)); // 4
+    g->doc = fabs(asin(sin(g->ocd) * g->cd / OD));                      // 4
 
-    g->fw_ob = COB + g->doc - OD_VERT + FW_VERT; //5
+    g->fw_ob = COB + g->doc - OD_VERT + FW_VERT;                        // 5
 
-    g->sin_ob_fw = sin(g->fw_ob); // 6
+    g->sin_ob_fw = sin(g->fw_ob);                                       // 6
 
-    g->d_w = OB * g->sin_ob_fw; // 7
+    g->d_w = OB * g->sin_ob_fw;                                         // 7
 
-    g->vert_ao = COA + g->doc + OD_VERT; // 8
+    g->vert_ao = COA + g->doc + OD_VERT;                                // 8
 
-    g->oa_fa = g->vert_fa - g->vert_ao; // 9
+    g->oa_fa = g->vert_fa - g->vert_ao;                                 // 9
 
-    g->d_a = OA * fabs(sin(g->oa_fa)); // 10
+    g->d_a = OA * fabs(sin(g->oa_fa));                                  // 10
 
-    g->x_a = OA * sin (g->vert_ao - M_PI_2); // 11
+    g->x_a = OA * sin (g->vert_ao - M_PI_2);                            // 11
 }
 
 void _get_total_force (Wheel *w) {
+
     float f_spring_l = -K * (w->geom.cd - X_0);
     w->param.f_total = f_spring_l + w->param.f_damp;
+
 }
 
 void _get_normal_force  (Wheel *w,  Wheel *w_other) {
@@ -244,11 +269,11 @@ void _get_normal_force  (Wheel *w,  Wheel *w_other) {
 
 void _calc_pipeline(int* x_l, int* x_r, Wheel *w_l, Wheel *w_r, int start) {
 
-    _get_pot_speed_pos(x_l, w_l, DELTA_T, N_SAMPLE, start);
-    _get_pot_speed_pos(x_r, w_r, DELTA_T, N_SAMPLE, start);
+    _get_pot_speed_pos(x_l, w_l, start);
+    _get_pot_speed_pos(x_r, w_r, start);
 
-    _get_damp_force (&(w_l->param.f_damp), w_l->param.v, FORCE_REB, FORCE_COMP);
-    _get_damp_force (&(w_r->param.f_damp), w_r->param.v, FORCE_REB, FORCE_COMP);
+    _get_damp_force (&(w_l->param.f_damp), w_l->param.v);
+    _get_damp_force (&(w_r->param.f_damp), w_r->param.v);
 
     _upadte_geometry(&(w_l->geom));
     _upadte_geometry(&(w_r->geom));
@@ -258,14 +283,16 @@ void _calc_pipeline(int* x_l, int* x_r, Wheel *w_l, Wheel *w_r, int start) {
 
     _get_normal_force (w_l, w_r);
     _get_normal_force (w_r, w_l);
+
 }
 
 void normal_force(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
+
     _calc_pipeline(x_l, x_r, &left, &right, start);
     *n_l = left.param.n;
     *n_r = right.param.n;
-}
 
+}
 
 /*
     This is the main calculation function. It adjusts sampling window according to, 

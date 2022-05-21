@@ -5,6 +5,9 @@
 // #define FTR_DRIVELINE_REAR 0
 //Coefficients for second-oreder polynomial fit
 
+#define degreesToRadians(angleDegrees) ((angleDegrees) * M_PI / 180.0)
+#define radiansToDegrees(angleRadians) ((angleRadians) * 180.0 / M_PI)
+
 #define A2          0.0206012
 #define A1          0.19403
 #define A0          0.281106
@@ -58,8 +61,8 @@ typedef struct _Wheel {
     // ADCconv adc;
 } Wheel;
 
-void _get_pot_speed_pos(int* x, Wheel* w, float delta_T, int n, int start);
-void _get_damp_force (float *f_damp, float v, const float force_reb [VEL_SIZE], const float force_comp [VEL_SIZE]);
+void _get_pot_speed_pos(int* x, Wheel* w, int start);
+void _get_damp_force (float *f_damp, float v);
 void _upadte_geometry (Geometry *g);
 void _get_total_force (Wheel *w);
 void _get_normal_force (Wheel *w, Wheel *w_other);
@@ -70,46 +73,48 @@ void normal_force(float* n_l, float* n_r, int* x_l, int* x_r, int start);
                                         // determine the rate of change of the shockpot position (velocisty)
 #define DELTA_T     1                   // Sampling period of the mictocontroller
 
+
+// We use inches here (unfortunately)
 // Defines for the front board
 #if (FTR_DRIVELINE_FRONT)
 
     // Element leghts as defined in the document.
-    #define OA          123
-    #define OB          123
-    #define OC          123
-    #define OD          123
+    #define OA          1.
+    #define OB          2.3
+    #define OC          2.5
+    #define OD          7.
         
     // Angles and their sines/cosines as defined in the document
-    #define FW_VERT     123
-    #define OD_VERT     123
-    #define COB         123
-    #define COA         123
+    #define FW_VERT     degreesToRadians(45)
+    #define OD_VERT     degreesToRadians(90.- 10.29)
+    #define COB         degreesToRadians(60.53)
+    #define COA         degreesToRadians(90)
 
-    #define GAMMA       2004.75     // Torsion coefficient
-    #define S           5           // ARB leverage, m
-    #define K           146.75      // Spring coefficient
+    #define GAMMA       2405.74     // Torsion coefficient
+    #define S           5           // ARB leverage, in
+    #define K           258.77      // Spring coefficient
     #define X_0         123         // Rest position of the spring, force is determied as:
                                     // F_spring = k * (cd - x_0)
 
-
+// Defines for the front board
     #define RESOLUTION    1  // convert ADC value to real numbers, resolution of the ADC, 
-    #define ADC_0         0   // actual displacement when ADC shows 0, in  
+    #define ADC_0         0  // actual displacement when ADC shows 0, in  
 
 #elif (FTR_DRIVELINE_REAR)
     // Element leghts as defined in the document.
     #define OA          123
-    #define OB          123
-    #define OC          123
-    #define OD          123
+    #define OB          3.38
+    #define OC          3.41
+    #define OD          6.875
         
     // Angles and their sines/cosines as defined in the document
-    #define FW_VERT     123
-    #define OD_VERT     123
-    #define COB         123
-    #define COA         123
+    #define FW_VERT     degreesToRadians(41)
+    #define OD_VERT     degreesToRadians(90 - 6.89)
+    #define COB         degreesToRadians(52.14)
+    #define COA         degreesToRadians(112.64)
 
-    #define GAMMA         2004.75     // torsion coefficient, m*N/rad
-    #define S             5           // ARB leverage, m
+    #define GAMMA         2004.79     // torsion coefficient, m*N/rad
+    #define S             5           // ARB leverage, in
     #define K             146.75      // spring constant, N/m
     #define X_0           123
 
