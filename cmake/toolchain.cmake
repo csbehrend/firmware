@@ -15,11 +15,17 @@ else()
     set(TOOLCHAIN_DIR "")
 endif()
 
-find_program(CMAKE_C_COMPILER   arm-none-eabi-gcc REQUIRED)
+find_program(CMAKE_MAKE_PROGRAM Ninja)
+find_program(CMAKE_C_COMPILER arm-none-eabi-gcc REQUIRED)
 find_program(CMAKE_ASM_COMPILER arm-none-eabi-gcc REQUIRED)
 find_program(CMAKE_CXX_COMPILER arm-none-eabi-g++)
 find_program(CMAKE_SIZE_UTIL    arm-none-eabi-size)
+find_program(CMAKE_OBJDUMP arm-none-eabi-objdump)
+find_program(CMAKE_OBJCOPY arm-none-eabi-objcopy)
 
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_CROSSCOMPILING 1)
 
 set(COMMON_FLAGS "-mthumb -mcpu=${TARGET_CPU} --specs=nosys.specs -mfloat-abi=hard -mfpu=fpv4-sp-d16")
 set(C_CXX_FLAGS  "--specs=nano.specs -ffunction-sections -fdata-sections -ffreestanding")
