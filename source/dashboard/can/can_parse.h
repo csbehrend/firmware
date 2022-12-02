@@ -93,7 +93,7 @@
 #define STALE_THRESH 3 / 2 // 3 / 2 would be 150% of period
 /* BEGIN AUTO UP DEFS (Update Period)*/
 #define UP_MAIN_HB 100
-#define UP_REAR_WHEEL_DATA 10
+#define UP_REAR_WHEEL_DATA 15
 #define UP_REAR_MOTOR_CURRENTS_TEMPS 500
 #define UP_ORION_INFO 32
 #define UP_ORION_CURRENTS_VOLTS 32

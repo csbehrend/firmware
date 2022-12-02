@@ -173,7 +173,7 @@
                                 {"sig_name": "left_normal", "type": "uint16_t", "length": 16, "unit":"mm", "scale":0.1, "sig_desc": "Linear potentiometer distance between mounting points"},
                                 {"sig_name": "right_normal", "type": "uint16_t", "length": 16, "unit":"mm", "scale":0.1, "sig_desc": "Linear potentiometer distance between mounting points"}
                             ],
-                            "msg_period": 10,
+                            "msg_period": 15,
                             "msg_hlp": 1,
                             "msg_pgn": 1
                         },

@@ -190,6 +190,37 @@ void canRxUpdate()
                 sched.os_ticks, can_data.torque_request_main.last_rx,
                 UP_TORQUE_REQUEST_MAIN);
     /* END AUTO STALE CHECKS */
+
+    if (can_data.main_hb.stale) {
+        asm("nop");
+    }
+
+    if (can_data.rear_wheel_data.stale) {
+        asm("nop");
+    }
+
+    if (can_data.rear_motor_currents_temps.stale) {
+        asm("nop");
+    }
+    if (!can_data.orion_currents_volts.stale) {
+        asm("nop");
+    }
+
+    // if (can_data.max_cell_temp.stale) {
+    //     asm("nop");
+    // }
+
+    if (can_data.rear_controller_temps.stale) {
+        asm("nop");
+    }
+
+    if (!can_data.torque_request_main.stale) {
+        asm("nop");
+    }
+
+//  if (can_data.dashboard_bl_cmd.stale) {
+//         asm("nop");
+//     }
 }
 
 bool initCANFilter()

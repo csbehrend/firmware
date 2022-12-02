@@ -62,7 +62,7 @@
 #define STALE_THRESH 3 / 2 // 3 / 2 would be 150% of period
 /* BEGIN AUTO UP DEFS (Update Period)*/
 #define UP_FRONT_WHEEL_DATA 10
-#define UP_REAR_WHEEL_DATA 10
+#define UP_REAR_WHEEL_DATA 15
 /* END AUTO UP DEFS */
 
 #define CHECK_STALE(stale, curr, last, period) if(!stale && \

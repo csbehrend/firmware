@@ -133,12 +133,16 @@ void canTxUpdate();
 void usartTxUpdate();
 void linkDAQVars();
 void checkStartBtn();
+void checkStaleStatus();
 extern void HardFault_Handler();
 
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
 q_handle_t q_tx_usart;
 
+static uint32_t startTime;
+static uint32_t finishTime;
+static uint32_t timeInterval;
 
 int main (void)
 {
@@ -157,6 +161,7 @@ int main (void)
     {
         HardFault_Handler();
     }
+    startTime = sched.os_ticks;
 
     /* Task Creation */
     schedInit(SystemCoreClock);
@@ -187,6 +192,7 @@ int main (void)
     taskCreate(update_info_pages, 200);
     taskCreate(update_race_colors, 1000);
     taskCreate(updateBarsFast, 75);
+    taskCreate(checkStaleStatus, 7);
 
     //taskCreate(check_precharge, 100);
 
@@ -282,6 +288,37 @@ void preflightAnimation(void) {
     }
 }
 
+
+
+            //   {"msg_name": "main_hb"},
+            //             {"msg_name": "rear_wheel_data"},
+            //             {"msg_name": "rear_motor_currents_temps"},
+            //             {"msg_name": "orion_info"},
+            //             {"msg_name": "orion_currents_volts"},
+            //             {"msg_name": "orion_errors"},
+            //             {"msg_name": "max_cell_temp"},
+            //             {"msg_name": "rear_controller_temps"},
+            //             {"msg_name": "precharge_hb"},
+            //             {"msg_name": "torque_request_main"},
+            //             {"msg_name": "dashboard_bl_cmd" , "callback": true}
+
+void checkStaleStatus() {
+//Original Test
+    finishTime = sched.os_ticks; 
+    timeInterval = finishTime - startTime;
+    startTime = sched.os_ticks;
+
+    if (can_data.main_hb.stale) {
+        asm("nop");
+    }
+
+    if (can_data.rear_wheel_data.stale) {
+        asm("nop");
+    }
+
+}
+
+
 void heartBeatLED()
 {
     PHAL_toggleGPIO(HEART_LED_GPIO_Port, HEART_LED_Pin);
@@ -364,12 +401,23 @@ void usartTxUpdate()
 
 void canTxUpdate()
 {
+   //Original
    CanMsgTypeDef_t tx_msg;
    if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
    {
        PHAL_txCANMessage(&tx_msg);
    }
 }
+
+//New
+//  if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
+//    {
+//     //    if (!PHAL_txCANMessage(&tx_msg)) {
+//     //     qSendToBack(&q_tx_can, &tx_msg);
+//     //     canTxUpdate();
+//     //    }
+//     PHAL_txCANMessage(&tx_msg);
+//    }
 
 void CAN1_RX0_IRQHandler()
 {
