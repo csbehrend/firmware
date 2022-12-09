@@ -3,6 +3,8 @@
 
 #ifdef STM32L496xx
 #include "stm32l496xx.h"
+#elif STM32L471xx
+#include "stm32l471xx.h"
 #elif STM32L432xx
 #include "stm32l432xx.h"
 #else

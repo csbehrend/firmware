@@ -41,6 +41,8 @@ bool PHAL_initADC(ADC_TypeDef* adc, ADCInitConfig_t* config, ADCChannelConfig_t 
 
     #ifdef STM32L432xx
     #define ADC_COMMON ADC1_COMMON
+    #elif STM32L471xx
+    #define ADC_COMMON ADC123_COMMON
     #elif STM32L496xx
     #define ADC_COMMON ADC123_COMMON
     #else

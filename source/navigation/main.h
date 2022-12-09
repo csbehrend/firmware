@@ -23,4 +23,18 @@
 #define HEARTBEAT_GPIO_Port (GPIOB)
 #define HEARTBEAT_Pin       (6)
 
+// SPI IMU
+#define SPI_SCLK_GPIO_Port (GPIOA)
+#define SPI_SCLK_Pin (5)
+#define SPI_MISO_GPIO_Port (GPIOA)
+#define SPI_MISO_Pin (6)
+#define SPI_MOSI_GPIO_Port (GPIOA)
+#define SPI_MOSI_Pin (7)
+#define SPI_CS_ACEL_GPIO_Port (GPIOA)
+#define SPI_CS_ACEL_Pin (3)
+#define SPI_CS_GYRO_GPIO_Port (GPIOA)
+#define SPI_CS_GYRO_Pin (2)
+#define SPI_CS_MAG_GPIO_Port (GPIOB)
+#define SPI_CS_MAG_Pin (15)
+
 #endif

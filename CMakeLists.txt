@@ -36,6 +36,7 @@ include(cmake/FindSTM32HAL.cmake)
 
 # See cmake/FindCMSIS.cmake and cmake/FindSTM32HAL.cmake for constructing additional libraries
 make_cmsis_library(CMSIS_L432 STM32L4xx STM32L432xx ${CMAKE_SOURCE_DIR}/common/STM32CubeL4/Drivers/CMSIS)
+make_cmsis_library(CMSIS_L471 STM32L4xx STM32L471xx ${CMAKE_SOURCE_DIR}/common/STM32CubeL4/Drivers/CMSIS)
 make_cmsis_library(CMSIS_L496 STM32L4xx STM32L496xx ${CMAKE_SOURCE_DIR}/common/STM32CubeL4/Drivers/CMSIS)
 
 # Add Common modules
@@ -69,6 +70,7 @@ include(cmake/common_component.cmake)
 
 # Add Components
 add_subdirectory(source/main_module)
+add_subdirectory(source/navigation)
 add_subdirectory(source/bootloader)
 add_subdirectory(source/l4_testing)
 add_subdirectory(source/torque_vector)
