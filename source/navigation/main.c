@@ -4,12 +4,41 @@
 #include "common/phal_L4/rcc/rcc.h"
 #include "common/phal_L4/spi/spi.h"
 #include "common/psched/psched.h"
+#include "common/phal_L4/usart/usart.h"
 
 /* Module Includes */
 #include "bmi088.h"
 #include "bsxlite_interface.h"
 #include "imu.h"
 #include "main.h"
+#include "gps.h"
+
+
+/* USART Configuration */
+// M9N GPS
+dma_init_t usart_gps_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_gps_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+usart_init_t huart_gps = {
+    .baud_rate   = 9600,
+    .word_length = WORD_8,
+    .hw_flow_ctl = HW_DISABLE,
+    .mode        = MODE_TX_RX,
+    .stop_bits   = SB_ONE,
+    .parity      = PT_NONE,
+    .obsample    = OB_DISABLE,
+    .ovsample    = OV_16,
+    .adv_feature.rx_inv    = true,
+    .adv_feature.tx_inv    = true,
+    .adv_feature.auto_baud = false,
+    .adv_feature.data_inv  = false,
+    .adv_feature.msb_first = false,
+    .adv_feature.overrun   = false,
+    .adv_feature.dma_on_rx_err = false,
+    .tx_dma_cfg = &usart_gps_tx_dma_config,
+    .rx_dma_cfg = &usart_gps_rx_dma_config
+};
+
+
 
 GPIOInitConfig_t gpio_config[] = {
     // Status Indicators
