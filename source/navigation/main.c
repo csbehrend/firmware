@@ -110,12 +110,17 @@ void gpsLoadConfig(void);
 
 void gpsLoadConfig(void)
 {
-    PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) gnssConfig, 
-       sizeof(gnssConfig) / sizeof(uint8_t));
-    
-//Delay here?
-    PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) mainConfig, 
-        sizeof(mainConfig) / sizeof(uint8_t));
+    if (PHAL_usartTxDmaComplete(&huart_gps)) 
+    {
+        PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) gnssConfig, 
+            sizeof(gnssConfig) / sizeof(uint8_t));
+    }
+    //Delay here?
+    if (PHAL_usartTxDmaComplete(&huart_gps)) 
+    {
+        PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) mainConfig, 
+            sizeof(mainConfig) / sizeof(uint8_t));
+    }
 }
 
 
@@ -135,6 +140,13 @@ int main (void)
     {
         HardFault_Handler();
     }
+    
+    if(!PHAL_initUSART(USART1, &huart_gps, APB1ClockRateHz))
+    {
+        HardFault_Handler();
+    }
+
+
 
     spi_config.data_rate = APB2ClockRateHz / 16;
     if (!PHAL_SPI_init(&spi_config))
