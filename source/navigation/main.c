@@ -39,7 +39,6 @@ usart_init_t huart_gps = {
 };
 
 
-
 GPIOInitConfig_t gpio_config[] = {
     // Status Indicators
     GPIO_INIT_OUTPUT(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_OUTPUT_LOW_SPEED),
@@ -107,6 +106,19 @@ void preflightAnimation(void);
 void preflightChecks(void);
 void sendIMUData(void);
 extern void HardFault_Handler(void);
+void gpsLoadConfig(void);
+
+void gpsLoadConfig(void)
+{
+    PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) gnssConfig, 
+       sizeof(gnssConfig) / sizeof(uint8_t));
+    
+//Delay here?
+    PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) mainConfig, 
+        sizeof(mainConfig) / sizeof(uint8_t));
+}
+
+
 
 int main (void)
 {
