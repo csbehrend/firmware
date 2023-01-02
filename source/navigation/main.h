@@ -35,6 +35,12 @@
 #define SPI_CS_GYRO_GPIO_Port (GPIOA)
 #define SPI_CS_GYRO_Pin (2)
 #define SPI_CS_MAG_GPIO_Port (GPIOB)
-#define SPI_CS_MAG_Pin (15)
+#define SPI_CS_MAG_Pin (0)
+
+// USART GPS
+#define GPS_RX_GPIO_Port (GPIOC)
+#define GPS_RX_Pin       (4)
+#define GPS_TX_GPIO_Port (GPIOC)
+#define GPS_TX_Pin       (5)
 
 #endif
