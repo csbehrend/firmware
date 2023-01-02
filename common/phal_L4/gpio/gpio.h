@@ -147,6 +147,7 @@ typedef struct {
 #define GPIO_INIT_USART3RX_PC5 GPIO_INIT_AF(GPIOC, 5, 7, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_OPEN_DRAIN)
 #define GPIO_INIT_USART3TX_PC4 GPIO_INIT_AF(GPIOC, 4, 7, GPIO_OUTPUT_ULTRA_SPEED, GPIO_TYPE_AF, GPIO_INPUT_OPEN_DRAIN)
 
+
 /**
  * @brief Initilize the GPIO perpheral given a list of configuration fields for all of the GPIO pins.
  *        Will also enable the GPIO RCC clock
