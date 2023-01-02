@@ -28,6 +28,8 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_OUTPUT(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, GPIO_OUTPUT_HIGH_SPEED),
 
     // GPS USART
+    GPIO_INIT_USART3RX_PC5,
+    GPIO_INIT_USART3TX_PC4,
     GPIO_INIT_AF(GPS_RX_GPIO_Port, GPS_RX_Pin,  7, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
     GPIO_INIT_AF(GPS_TX_GPIO_Port, GPS_TX_Pin,  7, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
 };
@@ -36,8 +38,8 @@ GPIOInitConfig_t gpio_config[] = {
 
 /* USART Configuration */
 // M9N GPS
-dma_init_t usart_gps_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
-dma_init_t usart_gps_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+dma_init_t usart_gps_tx_dma_config = USART3_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_gps_rx_dma_config = USART3_RXDMA_CONT_CONFIG(NULL, 2);
 usart_init_t huart_gps = {
     .baud_rate   = 115200,
     .word_length = WORD_8,
@@ -110,24 +112,6 @@ void preflightAnimation(void);
 void preflightChecks(void);
 void sendIMUData(void);
 extern void HardFault_Handler(void);
-void gpsLoadConfig(void);
-
-void gpsLoadConfig(void)
-{
-    if (PHAL_usartTxDmaComplete(&huart_gps)) 
-    {
-        PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) gnssConfig, 
-            sizeof(gnssConfig) / sizeof(uint8_t));
-    }
-    //Delay here?
-    if (PHAL_usartTxDmaComplete(&huart_gps)) 
-    {
-        PHAL_usartTxDma(USART1, &huart_gps, (uint16_t *) mainConfig, 
-            sizeof(mainConfig) / sizeof(uint8_t));
-    }
-}
-
-
 
 int main (void)
 {

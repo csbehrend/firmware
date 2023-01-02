@@ -39,8 +39,15 @@
 
 // USART GPS
 #define GPS_RX_GPIO_Port (GPIOC)
-#define GPS_RX_Pin       (4)
+#define GPS_RX_Pin       (5)
 #define GPS_TX_GPIO_Port (GPIOC)
-#define GPS_TX_Pin       (5)
+#define GPS_TX_Pin       (4)
+
+//also can you add in CS and WP pins for eeprom, they share the same SPI pins as IMU and magnetometer
+// EEPROM
+#define NAV_EEPROM_GPIO_PORT (GPIOB)
+#define NAV_EEPROM_Pin (12)
+#define NAV_WP_GPIO_PORT (GPIOB)
+#define NAV_WP_Pin (13)
 
 #endif
