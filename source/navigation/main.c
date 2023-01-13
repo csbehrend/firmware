@@ -127,7 +127,7 @@ int main (void)
         HardFault_Handler();
     }
     
-    if(!PHAL_initUSART(USART1, &huart_gps, APB1ClockRateHz))
+    if(!PHAL_initUSART(USART3, &huart_gps, APB1ClockRateHz))
     {
         HardFault_Handler();
     }

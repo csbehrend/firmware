@@ -43,7 +43,6 @@
 #define GPS_TX_GPIO_Port (GPIOC)
 #define GPS_TX_Pin       (4)
 
-//also can you add in CS and WP pins for eeprom, they share the same SPI pins as IMU and magnetometer
 // EEPROM
 #define NAV_EEPROM_GPIO_PORT (GPIOB)
 #define NAV_EEPROM_Pin (12)
