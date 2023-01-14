@@ -30,6 +30,10 @@ GPIOInitConfig_t gpio_config[] = {
     // GPS USART
     GPIO_INIT_USART3RX_PC5,
     GPIO_INIT_USART3TX_PC4,
+
+    //EEPROM 
+    GPIO_INIT_OUTPUT(NAV_EEPROM_CS_GPIO_PORT, NAV_EEPROM_CS_PIN, GPIO_OUTPUT_HIGH_SPEED),
+    GPIO_INIT_OUTPUT(NAV_WP_GPIO_PORT, NAV_WP_PIN, GPIO_OUTPUT_HIGH_SPEED),
 };
 
 
@@ -110,6 +114,7 @@ void preflightAnimation(void);
 void preflightChecks(void);
 void sendIMUData(void);
 extern void HardFault_Handler(void);
+void collectGPSData(void);
 
 int main (void)
 {
@@ -126,13 +131,11 @@ int main (void)
     {
         HardFault_Handler();
     }
-    
+
     if(!PHAL_initUSART(USART3, &huart_gps, APB1ClockRateHz))
     {
         HardFault_Handler();
     }
-
-
 
     spi_config.data_rate = APB2ClockRateHz / 16;
     if (!PHAL_SPI_init(&spi_config))
@@ -147,6 +150,7 @@ int main (void)
 
     taskCreate(heartBeatLED, 500);
     taskCreate(sendIMUData, 10);
+    taskCreate(collectGPSData, 100);
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
 
@@ -222,6 +226,7 @@ void preflightAnimation(void) {
 void heartBeatLED(void)
 {
     PHAL_toggleGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin);
+    
     // if ((sched.os_ticks - last_can_rx_time_ms) >= CONN_LED_MS_THRESH)
     //      PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
     // else PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
@@ -230,6 +235,14 @@ void heartBeatLED(void)
 void sendIMUData(void)
 {
     imu_periodic(&imu_h);
+}
+
+//Test Nav Message
+GPS_Handle_t testGPSHandle = {0xB5, 0x62, 0x01, 0x07, 0x5C, 0x00, 0x80, 0x10, 0xC1, 0x08, 0xE7, 0x07, 0x01, 0x02, 0x10, 0x2F, 0x20, 0xF3, 0xFF, 0xFF, 0xFF, 0xFF, 0xB0, 0xB1, 0xD8, 0x17, 0x03, 0x01, 0xEA, 0x05, 0x32, 0x3B, 0xEC, 0xCB, 0x92, 0x1D, 0xA7, 0x16, 0xBF, 0xB6, 0x01, 0x00, 0xD2, 0x34, 0x02, 0x00, 0x85, 0x0D, 0x00, 0x00, 0x8A, 0x29, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x0D, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x01, 0x00, 0x00, 0x72, 0x1A, 0xFC, 0x00, 0x6B, 0x01, 0x00, 0x00, 0xEE, 0x13, 0x4F, 0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x97};
+
+//Test function for usartRxDma
+void collectGPSData(void) {
+    PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *) testGPSHandle.raw_message, 100);
 }
 
 // void canTxUpdate(void)

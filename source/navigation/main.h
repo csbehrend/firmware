@@ -44,9 +44,10 @@
 #define GPS_TX_Pin       (4)
 
 // EEPROM
-#define NAV_EEPROM_GPIO_PORT (GPIOB)
-#define NAV_EEPROM_Pin (12)
+//todo add in gpio.c
+#define NAV_EEPROM_CS_GPIO_PORT (GPIOB)
+#define NAV_EEPROM_CS_PIN (12)
 #define NAV_WP_GPIO_PORT (GPIOB)
-#define NAV_WP_Pin (13)
+#define NAV_WP_PIN (13)
 
 #endif
