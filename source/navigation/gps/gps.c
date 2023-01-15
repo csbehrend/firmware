@@ -69,15 +69,15 @@ bool parseVelocity(uint8_t *raw_message, GPS_Handle_t *GPS)
         iLong.bytes[3] = raw_message[37];
         GPS->latitude = iLong.iLong;
 
-        // Collect Height
-        GPS->height_bytes[0] = raw_message[42];
-        GPS->height_bytes[0] = raw_message[43];
-        GPS->height_bytes[0] = raw_message[44];
-        GPS->height_bytes[0] = raw_message[45];
-        iLong.bytes[0] = raw_message[42];
-        iLong.bytes[1] = raw_message[43];
-        iLong.bytes[2] = raw_message[44];
-        iLong.bytes[3] = raw_message[45];
+        // Collect Height Above Elip.
+        GPS->height_bytes[0] = raw_message[38];
+        GPS->height_bytes[0] = raw_message[39];
+        GPS->height_bytes[0] = raw_message[40];
+        GPS->height_bytes[0] = raw_message[41];
+        iLong.bytes[0] = raw_message[38];
+        iLong.bytes[1] = raw_message[39];
+        iLong.bytes[2] = raw_message[40];
+        iLong.bytes[3] = raw_message[41];
         GPS->height = iLong.iLong;
 
         // Collect North Velocity
