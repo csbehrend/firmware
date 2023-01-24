@@ -5,15 +5,10 @@
  * @version 0.1
  * @date 2022-01-22
  *
- *
  * @copyright Copyright (c) 2021
- *
- *
- *
  *
  */
 #include "common/phal_L4/spi/spi.h"
-
 
 
 
@@ -40,7 +35,7 @@ bool PHAL_SPI_init(SPI_InitConfig_t* cfg)
         RCC->APB1ENR1 |= RCC_APB1ENR1_SPI3EN;
     }
     else {
-        return false;
+        RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
     }
 
 
@@ -137,6 +132,11 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t* spi, const uint8_t* out_data, const uin
         NVIC_EnableIRQ(DMA2_Channel1_IRQn);
         NVIC_EnableIRQ(DMA2_Channel2_IRQn);
     }
+    //Defaults to SPI1
+    else {
+        NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+        NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+    }
 
     // Start transaction
     spi->periph->CR1 |= SPI_CR1_SPE;
@@ -178,19 +178,19 @@ void DMA1_Channel3_IRQHandler()
 
 void DMA2_Channel2_IRQHandler()
 {
-    if (DMA2->ISR & DMA_ISR_TEIF2)
+    if (DMA2->ISR & DMA_ISR_TEIF3)
     {
-        DMA2->IFCR |= DMA_IFCR_CTEIF2;
+        DMA2->IFCR |= DMA_IFCR_CTEIF3;
         if (active_transfer)
             active_transfer->_error = true;
     }
-    if (DMA2->ISR & DMA_ISR_TCIF2)
+    if (DMA2->ISR & DMA_ISR_TCIF3)
     {
-        DMA2->IFCR |= DMA_IFCR_CTCIF2;
+        DMA2->IFCR |= DMA_IFCR_CTCIF3;
     }
-    if (DMA2->ISR & DMA_ISR_GIF2)
+    if (DMA2->ISR & DMA_ISR_GIF3)
     {
-        DMA2->IFCR |= DMA_IFCR_CGIF2;
+        DMA2->IFCR |= DMA_IFCR_CGIF3;
     }
 }
 
@@ -256,13 +256,13 @@ void DMA1_Channel2_IRQHandler()
 }
 void DMA2_Channel1_IRQHandler()
 {
-    if (DMA2->ISR & DMA_ISR_TEIF1)
+    if (DMA2->ISR & DMA_ISR_TEIF2)
     {
-        DMA2->IFCR |= DMA_IFCR_CTEIF1;
+        DMA2->IFCR |= DMA_IFCR_CTEIF2;
         if (active_transfer)
             active_transfer->_error = true;
     }
-    if (DMA2->ISR & DMA_ISR_TCIF1)
+    if (DMA2->ISR & DMA_ISR_TCIF2)
     {
         if (active_transfer->nss_sw)
             PHAL_writeGPIO(active_transfer->nss_gpio_port, active_transfer->nss_gpio_pin, 1);
@@ -285,9 +285,9 @@ void DMA2_Channel1_IRQHandler()
         active_transfer->_error = false;
         active_transfer = NULL;
     }
-    if (DMA2->ISR & DMA_ISR_GIF1)
+    if (DMA2->ISR & DMA_ISR_GIF2)
     {
-        DMA2->IFCR |= DMA_IFCR_CGIF1;
+        DMA2->IFCR |= DMA_IFCR_CGIF2;
     }
 }
 /**
