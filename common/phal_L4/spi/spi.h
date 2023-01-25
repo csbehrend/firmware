@@ -35,6 +35,8 @@ typedef struct
 
     volatile bool _busy;  /* SPI Peripheral currently in a transaction */
     volatile bool _error; /* SPI Peripheral current transaction error */
+
+    SPI_TypeDef *periph; /*SPI Peripheral*/
 } SPI_InitConfig_t;
 
 /**
@@ -61,11 +63,12 @@ bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uin
 
 /**
  * @brief Check for current SPI transaction to complete
+ * @param cfg Spi config
  *
  * @return true
  * @return false
  */
-bool PHAL_SPI_busy();
+bool PHAL_SPI_busy(SPI_InitConfig_t *cfg);
 
 /**
  * @brief Blocking function to write a single byte to a SPI device.

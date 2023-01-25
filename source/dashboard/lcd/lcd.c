@@ -199,9 +199,9 @@ void check_buttons() {
    }
     //Update info, cycle SPI and get new data for next iteration
    wheel_old_btns = wheel_new_btns;
-    bool b = PHAL_SPI_busy();
+    bool b = PHAL_SPI_busy(&hspi1);
     bool c = PHAL_SPI_transfer(&hspi1, wheel_read_cmd, 3, new_data);
-    while (PHAL_SPI_busy());
+    while (PHAL_SPI_busy(&hspi1));
    wheel_new_btns.raw_data = new_data[2];
 
 }
@@ -539,8 +539,8 @@ void update_info_pages(void) {
 }
 //Function to update the colors on the pages (not needed to happen as frequently)
 void update_race_colors() {
+    uint16_t temp = can_data.max_cell_temp.max_temp;
     switch(p_idx) {
-        uint16_t temp = can_data.max_cell_temp.max_temp;
         case P_RACE:
             //Depending on value, set color (Green = good, yellow = watch closely, red = car failing imminently)
             //Max temp between left + right motors
@@ -717,7 +717,10 @@ static char* int_to_char(int x, char *str, int buffer) {
         char *s = str + buffer - 1;
         //If x is just 0
         if(x == 0)
-            return *str = '0';
+        {
+            *str = '0';
+            return str;
+        }
         //Iterate over the integer, add it to array, then append a '-'
         while (x > 0) {
             *s-- = (x % 10) + '0';
@@ -729,7 +732,10 @@ static char* int_to_char(int x, char *str, int buffer) {
     //Iterate over teh integer, adding it to the array
     char *s = str + buffer - 1;
     if(x == 0)
-       return *str = '0';
+    {
+        *str = '0';
+        return str;
+    }
     while (x > 0) {
         *s-- = (x % 10) + '0';
         x /=10;

@@ -22,20 +22,36 @@
 /* BEGIN AUTO ID DEFS */
 #define ID_TORQUE_REQUEST 0x4000042
 #define ID_BITSTREAM_FLASH_STATUS 0x1902
+#define ID_FAULT_SYNC_TORQUE_VECTOR 0x8ca42
 #define ID_FRONT_WHEEL_DATA 0x4000003
 #define ID_REAR_WHEEL_DATA 0x4000043
 #define ID_BITSTREAM_DATA 0x400193e
 #define ID_BITSTREAM_REQUEST 0x1000197e
+#define ID_FAULT_SYNC_MAIN_MODULE 0x8ca01
+#define ID_FAULT_SYNC_DRIVELINE 0x8ca83
+#define ID_FAULT_SYNC_DASHBOARD 0x8cb05
+#define ID_FAULT_SYNC_PRECHARGE 0x8cac4
+#define ID_FAULT_SYNC_TEST_NODE 0x8cb7f
+#define ID_SET_FAULT 0x809c83e
+#define ID_RETURN_FAULT_CONTROL 0x809c87e
 /* END AUTO ID DEFS */
 
 // Message DLC definitions
 /* BEGIN AUTO DLC DEFS */
 #define DLC_TORQUE_REQUEST 6
 #define DLC_BITSTREAM_FLASH_STATUS 1
+#define DLC_FAULT_SYNC_TORQUE_VECTOR 3
 #define DLC_FRONT_WHEEL_DATA 8
 #define DLC_REAR_WHEEL_DATA 8
 #define DLC_BITSTREAM_DATA 8
 #define DLC_BITSTREAM_REQUEST 5
+#define DLC_FAULT_SYNC_MAIN_MODULE 3
+#define DLC_FAULT_SYNC_DRIVELINE 3
+#define DLC_FAULT_SYNC_DASHBOARD 3
+#define DLC_FAULT_SYNC_PRECHARGE 3
+#define DLC_FAULT_SYNC_TEST_NODE 3
+#define DLC_SET_FAULT 3
+#define DLC_RETURN_FAULT_CONTROL 2
 /* END AUTO DLC DEFS */
 
 // Message sending macros
@@ -56,6 +72,13 @@
         data_a->bitstream_flash_status.flash_timeout_rx = flash_timeout_rx_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_FAULT_SYNC_TORQUE_VECTOR(queue, idx_, latched_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_FAULT_SYNC_TORQUE_VECTOR, .DLC=DLC_FAULT_SYNC_TORQUE_VECTOR, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->fault_sync_torque_vector.idx = idx_;\
+        data_a->fault_sync_torque_vector.latched = latched_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 /* END AUTO SEND MACROS */
 
 // Stale Checking
@@ -73,7 +96,7 @@
 
 // Message Raw Structures
 /* BEGIN AUTO MESSAGE STRUCTURE */
-typedef union { __attribute__((packed))
+typedef union { 
     struct {
         uint64_t front_left: 12;
         uint64_t front_right: 12;
@@ -84,6 +107,10 @@ typedef union { __attribute__((packed))
         uint64_t flash_success: 1;
         uint64_t flash_timeout_rx: 1;
     } bitstream_flash_status;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_torque_vector;
     struct {
         uint64_t left_speed: 16;
         uint64_t right_speed: 16;
@@ -110,8 +137,35 @@ typedef union { __attribute__((packed))
         uint64_t download_request: 1;
         uint64_t download_size: 32;
     } bitstream_request;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_main_module;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_driveline;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_dashboard;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_precharge;
+    struct {
+        uint64_t idx: 16;
+        uint64_t latched: 1;
+    } fault_sync_test_node;
+    struct {
+        uint64_t id: 16;
+        uint64_t value: 1;
+    } set_fault;
+    struct {
+        uint64_t id: 16;
+    } return_fault_control;
     uint8_t raw_data[8];
-} CanParsedData_t;
+} __attribute__((packed)) CanParsedData_t;
 /* END AUTO MESSAGE STRUCTURE */
 
 // contains most up to date received
@@ -148,6 +202,33 @@ typedef struct {
         uint8_t download_request;
         uint32_t download_size;
     } bitstream_request;
+    struct {
+        uint16_t idx;
+        uint8_t latched;
+    } fault_sync_main_module;
+    struct {
+        uint16_t idx;
+        uint8_t latched;
+    } fault_sync_driveline;
+    struct {
+        uint16_t idx;
+        uint8_t latched;
+    } fault_sync_dashboard;
+    struct {
+        uint16_t idx;
+        uint8_t latched;
+    } fault_sync_precharge;
+    struct {
+        uint16_t idx;
+        uint8_t latched;
+    } fault_sync_test_node;
+    struct {
+        uint16_t id;
+        uint8_t value;
+    } set_fault;
+    struct {
+        uint16_t id;
+    } return_fault_control;
 } can_data_t;
 /* END AUTO CAN DATA STRUCTURE */
 
@@ -155,6 +236,13 @@ extern can_data_t can_data;
 
 /* BEGIN AUTO EXTERN CALLBACK */
 extern void bitstream_request_CALLBACK(CanParsedData_t* msg_data_a);
+extern void fault_sync_main_module_CALLBACK(CanParsedData_t* msg_data_a);
+extern void fault_sync_driveline_CALLBACK(CanParsedData_t* msg_data_a);
+extern void fault_sync_dashboard_CALLBACK(CanParsedData_t* msg_data_a);
+extern void fault_sync_precharge_CALLBACK(CanParsedData_t* msg_data_a);
+extern void fault_sync_test_node_CALLBACK(CanParsedData_t* msg_data_a);
+extern void set_fault_CALLBACK(CanParsedData_t* msg_data_a);
+extern void return_fault_control_CALLBACK(CanParsedData_t* msg_data_a);
 /* END AUTO EXTERN CALLBACK */
 
 /* BEGIN AUTO EXTERN RX IRQ */

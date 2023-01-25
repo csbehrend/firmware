@@ -14,8 +14,10 @@
 #include "car.h"
 #include "can_parse.h"
 #include "cooling.h"
-#include "daq.h"
+// #include "daq.h"
 #include "main.h"
+
+#include "common/faults/faults.h"
 
 GPIOInitConfig_t gpio_config[] = {
     // CAN
@@ -133,7 +135,7 @@ int main (void)
     taskCreate(carHeartbeat, 100);
     taskCreate(carPeriodic, 15);
     taskCreate(setFanPWM, 1);
-    taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
+    // taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
 
@@ -194,7 +196,7 @@ void preflightChecks(void) {
        case 4:
            initCANParse(&q_rx_can);
            linkDAQVars();
-           daqInit(&q_tx_can, I2C);
+        //    daqInit(&q_tx_can, I2C);
            break;
         default:
             registerPreflightComplete(1);
@@ -235,16 +237,16 @@ void heartBeatLED()
 
 void linkDAQVars()
 {
-    linkReada(DAQ_ID_DT_LITERS_P_MIN_X10, &cooling.dt_liters_p_min_x10);
-    linkReada(DAQ_ID_DT_FLOW_ERROR, &cooling.dt_flow_error);
-    linkReada(DAQ_ID_DT_TEMP_ERROR, &cooling.dt_temp_error);
-    linkReada(DAQ_ID_BAT_LITERS_P_MIN_X10, &cooling.bat_liters_p_min_x10);
-    linkReada(DAQ_ID_BAT_FLOW_ERROR, &cooling.bat_flow_error);
-    linkReada(DAQ_ID_BAT_TEMP_ERROR, &cooling.bat_temp_error);
-    linkReada(DAQ_ID_MOT_LEFT_REQ, &mot_left_req);
-    linkWritea(DAQ_ID_MOT_LEFT_REQ, &mot_left_req);
-    linkReada(DAQ_ID_MOT_RIGHT_REQ, &mot_right_req);
-    linkWritea(DAQ_ID_MOT_RIGHT_REQ, &mot_right_req);
+    // linkReada(DAQ_ID_DT_LITERS_P_MIN_X10, &cooling.dt_liters_p_min_x10);
+    // linkReada(DAQ_ID_DT_FLOW_ERROR, &cooling.dt_flow_error);
+    // linkReada(DAQ_ID_DT_TEMP_ERROR, &cooling.dt_temp_error);
+    // linkReada(DAQ_ID_BAT_LITERS_P_MIN_X10, &cooling.bat_liters_p_min_x10);
+    // linkReada(DAQ_ID_BAT_FLOW_ERROR, &cooling.bat_flow_error);
+    // linkReada(DAQ_ID_BAT_TEMP_ERROR, &cooling.bat_temp_error);
+    // linkReada(DAQ_ID_MOT_LEFT_REQ, &mot_left_req);
+    // linkWritea(DAQ_ID_MOT_LEFT_REQ, &mot_left_req);
+    // linkReada(DAQ_ID_MOT_RIGHT_REQ, &mot_right_req);
+    // linkWritea(DAQ_ID_MOT_RIGHT_REQ, &mot_right_req);
 }
 
 void canTxUpdate(void)
@@ -260,8 +262,10 @@ void CAN1_RX0_IRQHandler()
 {
     if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
         CAN1->RF0R &= !(CAN_RF0R_FOVR0);
+        CAN1->RF0R &= !(CAN_RF0R_FOVR0);
 
     if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
+        CAN1->RF0R &= !(CAN_RF0R_FULL0);
         CAN1->RF0R &= !(CAN_RF0R_FULL0);
 
     if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
@@ -291,6 +295,7 @@ void CAN1_RX0_IRQHandler()
         rx.Data[6] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
         rx.Data[7] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
         CAN1->RF0R |= (CAN_RF0R_RFOM0);
 
         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)

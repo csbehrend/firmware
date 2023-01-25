@@ -12,6 +12,10 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include "common/faults/fault_nodes.h"
+
+#define FAULT_NODE_NAME NODE_DASHBOARD
+
 /* Status LEDs */
 #define CONN_LED_GPIO_Port   (GPIOB)
 #define CONN_LED_Pin         (6)

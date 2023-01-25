@@ -9,11 +9,11 @@
 #include "common/phal_L4/tim/tim.h"
 #include "common/phal_L4/dma/dma.h"
 #include "common/psched/psched.h"
-#include "common/eeprom/eeprom.h"
 #include "common/common_defs/common_defs.h"
 #include "common/bootloader/bootloader_common.h"
 #include <math.h>
 #include <stdbool.h>
+
 
 #if (FTR_DRIVELINE_REAR) && (FTR_DRIVELINE_FRONT)
 #error "Can not specify both front and rear driveline for the same binary!"
@@ -22,12 +22,14 @@
 #endif
 
 /* Module Includes */
-#include "daq.h"
+// #include "daq.h"
 #include "main.h"
 #include "can_parse.h"
 #include "wheel_speeds.h"
 #include "shockpot.h"
 #include "plettenberg.h"
+
+#include "common/faults/faults.h"
 
 GPIOInitConfig_t gpio_config[] = {
   GPIO_INIT_CANRX_PA11,
@@ -112,7 +114,7 @@ ADCChannelConfig_t adc_channel_config[] = {
     {.channel=POT_AMP_LEFT_ADC_CHNL,  .rank=1, .sampling_time=ADC_CHN_SMP_CYCLES_6_5},
     {.channel=POT_AMP_RIGHT_ADC_CHNL, .rank=2, .sampling_time=ADC_CHN_SMP_CYCLES_6_5},
 };
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &raw_shock_pots, 
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &raw_shock_pots,
                             sizeof(raw_shock_pots) / sizeof(raw_shock_pots.pot_left), 0b01);
 
 #define TargetCoreClockrateHz 16000000
@@ -129,6 +131,8 @@ extern uint32_t APB1ClockRateHz;
 extern uint32_t APB2ClockRateHz;
 extern uint32_t AHBClockRateHz;
 extern uint32_t PLLClockRateHz;
+
+uint8_t i;
 
 /* Function Prototypes */
 void preflightAnimation(void);
@@ -152,6 +156,7 @@ motor_t motor_left, motor_right;
 
 int main(void)
 {
+    i = 0;
     /* Data Struct init */
     qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
@@ -167,11 +172,16 @@ int main(void)
     {
         HardFault_Handler();
     }
-    
+    initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, &q_rx_can);
+
     /* Task Creation */
     schedInit(SystemCoreClock);
     configureAnim(preflightAnimation, preflightChecks, 50, 750);
     taskCreate(ledUpdate, 500);
+    //FL Stuff
+    taskCreate(txFaults, 100);
+    taskCreate(updateFaults, 5);
+    //FL Stuff
     taskCreate(heartBeat, 100);
     taskCreate(commandTorquePeriodic, 15);
     taskCreate(parseDataPeriodic, MC_LOOP_DT);
@@ -184,7 +194,7 @@ int main(void)
     // signify end of initialization
     PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
     schedStart();
-    
+
     return 0;
 }
 
@@ -231,7 +241,7 @@ void preflightChecks(void) {
             }
             break;
         case 3:
-            if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config, 
+            if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config,
             sizeof(adc_channel_config)/sizeof(ADCChannelConfig_t)))
             {
                 HardFault_Handler();
@@ -254,8 +264,8 @@ void preflightChecks(void) {
             USART_L->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
             NVIC_EnableIRQ(USART1_IRQn);
             // initial rx request
-            PHAL_usartRxDma(USART_L, &huart_l, 
-                            (uint16_t *) motor_left.rx_buf, 
+            PHAL_usartRxDma(USART_L, &huart_l,
+                            (uint16_t *) motor_left.rx_buf,
                             MC_MAX_RX_LENGTH);
             break;
         case 6:
@@ -264,8 +274,8 @@ void preflightChecks(void) {
             USART_R->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
             NVIC_EnableIRQ(USART2_IRQn);
             // initial rx request
-            PHAL_usartRxDma(USART_R, &huart_r, 
-                            (uint16_t *) motor_right.rx_buf, 
+            PHAL_usartRxDma(USART_R, &huart_r,
+                            (uint16_t *) motor_right.rx_buf,
                             MC_MAX_RX_LENGTH);
             break;
         default:
@@ -333,11 +343,11 @@ void commandTorquePeriodic()
     if (pow_right < 0) pow_right = 0.0;
 
     // Only drive if ready
-    if (can_data.main_hb.car_state != CAR_STATE_READY2DRIVE || 
-        // TODO: fix stale checks can_data.main_hb.stale    ||
-        // can_data.torque_request_main.stale               ||
+    if (can_data.main_hb.car_state != CAR_STATE_READY2DRIVE ||
+        can_data.main_hb.stale                              ||
+        can_data.torque_request_main.stale                  ||
         motor_left.motor_state  != MC_CONNECTED             ||
-        motor_right.motor_state != MC_CONNECTED) 
+        motor_right.motor_state != MC_CONNECTED)
     {
         pow_left  = 0.0;
         pow_right = 0.0;
@@ -383,8 +393,8 @@ void parseDataPeriodic()
 #endif
 
 #if (FTR_DRIVELINE_REAR)
-    SEND_REAR_MOTOR_CURRENTS_TEMPS(q_tx_can, 
-                                   (uint16_t) motor_left.current_x10, 
+    SEND_REAR_MOTOR_CURRENTS_TEMPS(q_tx_can,
+                                   (uint16_t) motor_left.current_x10,
                                    (uint16_t) motor_right.current_x10,
                                    (uint8_t)  motor_left.motor_temp, 
                                    (uint8_t)  motor_right.motor_temp,
@@ -393,8 +403,8 @@ void parseDataPeriodic()
                                (uint8_t) motor_left.controller_temp,
                                (uint8_t) motor_right.controller_temp);
 #elif (FTR_DRIVELINE_FRONT)
-    SEND_FRONT_MOTOR_CURRENTS_TEMPS(q_tx_can, 
-                                   (uint16_t) motor_left.current_x10, 
+    SEND_FRONT_MOTOR_CURRENTS_TEMPS(q_tx_can,
+                                   (uint16_t) motor_left.current_x10,
                                    (uint16_t) motor_right.current_x10,
                                    (uint8_t)  motor_left.motor_temp, 
                                    (uint8_t)  motor_right.motor_temp,
@@ -405,9 +415,20 @@ void parseDataPeriodic()
 void ledUpdate()
 {
     PHAL_toggleGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin);
-    if ((sched.os_ticks - last_can_rx_time_ms) >= CONN_LED_MS_THRESH)
-         PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
-    else PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
+    // if ((sched.os_ticks - last_can_rx_time_ms) >= CONN_LED_MS_THRESH)
+    //      PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
+    // else PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
+
+    if (i++ == 6) {
+        setFault(ID_WLSPD_L_FAULT, 6000);
+        PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
+    }
+
+    if (i == 13) {
+        setFault(ID_WLSPD_L_FAULT, 2000);
+        PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
+        i = 0;
+    }
 }
 
 /* USART Message Handling */
@@ -415,12 +436,12 @@ uint8_t tmp_left[MC_MAX_TX_LENGTH] = {'\0'};
 uint8_t tmp_right[MC_MAX_TX_LENGTH] = {'\0'};
 void usartTxUpdate()
 {
-    if (PHAL_usartTxDmaComplete(&huart_l) && 
+    if (PHAL_usartTxDmaComplete(&huart_l) &&
         qReceive(&q_tx_usart_l, tmp_left) == SUCCESS_G)
     {
         PHAL_usartTxDma(USART_L, &huart_l, (uint16_t *) tmp_left, strlen(tmp_left));
     }
-    if (PHAL_usartTxDmaComplete(&huart_r) && 
+    if (PHAL_usartTxDmaComplete(&huart_r) &&
         qReceive(&q_tx_usart_r, tmp_right) == SUCCESS_G)
     {
         PHAL_usartTxDma(USART_R, &huart_r, (uint16_t *) tmp_right, strlen(tmp_right));
@@ -469,10 +490,10 @@ void canTxUpdate()
 void CAN1_RX0_IRQHandler()
 {
     if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
-        CAN1->RF0R &= !(CAN_RF0R_FOVR0); 
+        CAN1->RF0R &= !(CAN_RF0R_FOVR0);
 
     if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
-        CAN1->RF0R &= !(CAN_RF0R_FULL0); 
+        CAN1->RF0R &= !(CAN_RF0R_FULL0);
 
     if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
     {
@@ -481,7 +502,7 @@ void CAN1_RX0_IRQHandler()
 
         // Get either StdId or ExtId
         if (CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR)
-        { 
+        {
           rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
         }
         else
@@ -500,7 +521,7 @@ void CAN1_RX0_IRQHandler()
         rx.Data[6] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
         rx.Data[7] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
-        CAN1->RF0R |= (CAN_RF0R_RFOM0); 
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
 
         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
     }

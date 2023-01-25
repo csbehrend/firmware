@@ -1,6 +1,10 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
+#include "common/faults/fault_nodes.h"
+
+#define FAULT_NODE_NAME NODE_PRECHARGE
+
 // SPI Accel
 #define SPI_SCLK_GPIO_Port (GPIOA)
 #define SPI_SCLK_Pin (5)
@@ -12,6 +16,8 @@
 #define SPI_CS_ACEL_Pin (8)
 #define SPI_CS_GYRO_GPIO_Port (GPIOA)
 #define SPI_CS_GYRO_Pin (9)
+#define SPI_CS_TMU_GPIO_Port (GPIOD)
+#define SPI_CS_TMU_GPIO_Pin (15)
 
 // Current Sense
 #define I_SENSE_CH1_GPIO_Port (GPIOA) // ADC12_IN5

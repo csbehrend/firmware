@@ -14,6 +14,10 @@
 
 //STM32L496VGT6
 
+#include "common/faults/fault_nodes.h"
+
+#define FAULT_NODE_NAME NODE_MAIN_MODULE
+
 // Status Indicators
 #define ERR_LED_GPIO_Port   (GPIOE)
 #define ERR_LED_Pin         (9)

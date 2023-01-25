@@ -32,7 +32,7 @@ bool PHAL_initUSART(USART_TypeDef *instance, usart_init_t *handle, const uint32_
 
     case USART2_BASE:
         RCC->APB1ENR1 |= RCC_APB1ENR1_USART2EN;
-        break;
+
     case LPUART1_BASE:
         RCC->APB1ENR2 |= RCC_APB1ENR2_LPUART1EN;
         break;
@@ -193,7 +193,7 @@ bool PHAL_usartRxDmaComplete(usart_init_t *handle)
     }
     return false;
 }
-
+#ifndef SPI2
 void DMA1_Channel5_IRQHandler()
 {
     if (DMA1->ISR & DMA_ISR_TEIF5)
@@ -209,6 +209,24 @@ void DMA1_Channel5_IRQHandler()
         DMA1->IFCR |= DMA_IFCR_CGIF5;
     }
 }
+#endif
+#ifdef SPI2
+void DMA2_Channel7_IRQHandler()
+{
+    if (DMA2->ISR & DMA_ISR_TEIF5)
+    {
+        DMA2->IFCR |= DMA_IFCR_CTEIF5;
+    }
+    if (DMA2->ISR & DMA_ISR_TCIF5)
+    {
+        DMA2->IFCR |= DMA_IFCR_CTCIF5;
+    }
+    if (DMA2->ISR & DMA_ISR_GIF5)
+    {
+        DMA2->IFCR |= DMA_IFCR_CGIF5;
+    }
+}
+#endif
 
 // Masking and unmasking ISRs. Useful for interrupt based functionality.
 // Likely don't need it since we use DMA, but could come in handy sometime

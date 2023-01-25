@@ -20,6 +20,7 @@
 #include "lcd.h"
 #include "nextion.h"
 
+#include "common/faults/faults.h"
 
 GPIOInitConfig_t gpio_config[] = {
  GPIO_INIT_CANRX_PA11,
@@ -174,7 +175,7 @@ int main (void)
 
     //*******UNCOMMENT
 
-    taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
+    // taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
 
@@ -196,7 +197,7 @@ int main (void)
     taskCreateBackground(usartTxUpdate);
 
     schedStart();
-
+    
     return 0;
 }
 
@@ -246,10 +247,10 @@ void preflightChecks(void) {
             /* Module Initialization */
             initCANParse(&q_rx_can);
             linkDAQVars();
-            if (daqInit(&q_tx_can, I2C1))
-            {
-                HardFault_Handler();
-            }
+            // if (daqInit(&q_tx_can, I2C1))
+            // {
+            //     HardFault_Handler();
+            // }
             break;
         case 6:
             // char *race_page = "extra_info\0";
@@ -301,9 +302,9 @@ void heartBeatLED()
 
 void heartBeatMsg()
 {
-   SEND_DASHBOARD_HB(q_tx_can, pedals.apps_faulted,
-                                   pedals.bse_faulted,
-                                   pedals.apps_brake_faulted);
+    SEND_DASHBOARD_HB(q_tx_can, pedals.apps_faulted,
+                                    pedals.bse_faulted,
+                                    pedals.apps_brake_faulted);
 }
 
 bool start_prev = false;
@@ -333,33 +334,33 @@ void checkStartBtn()
 
 void linkDAQVars()
 {
-   linkReada(DAQ_ID_T1MAX,  &pedal_calibration.t1max);
-   linkWritea(DAQ_ID_T1MAX, &pedal_calibration.t1max);
-   linkReada(DAQ_ID_T1MIN,  &pedal_calibration.t1min);
-   linkWritea(DAQ_ID_T1MIN, &pedal_calibration.t1min);
-   linkReada(DAQ_ID_T2MAX,  &pedal_calibration.t2max);
-   linkWritea(DAQ_ID_T2MAX, &pedal_calibration.t2max);
-   linkReada(DAQ_ID_T2MIN,  &pedal_calibration.t2min);
-   linkWritea(DAQ_ID_T2MIN, &pedal_calibration.t2min);
-   linkReada(DAQ_ID_B3MAX,  &pedal_calibration.b3max);
-   linkWritea(DAQ_ID_B3MAX, &pedal_calibration.b3max);
-   linkReada(DAQ_ID_B3MIN,  &pedal_calibration.b3min);
-   linkWritea(DAQ_ID_B3MIN, &pedal_calibration.b3min);
-   linkReada(DAQ_ID_B1,     &raw_pedals.b1);
-   linkReada(DAQ_ID_B2,     &raw_pedals.b2);
-   linkReada(DAQ_ID_T1,     &raw_pedals.t1);
-   linkReada(DAQ_ID_T2,     &raw_pedals.t2);
-   linkReada(DAQ_ID_B3,     &raw_pedals.b3);
+//    linkReada(DAQ_ID_T1MAX,  &pedal_calibration.t1max);
+//    linkWritea(DAQ_ID_T1MAX, &pedal_calibration.t1max);
+//    linkReada(DAQ_ID_T1MIN,  &pedal_calibration.t1min);
+//    linkWritea(DAQ_ID_T1MIN, &pedal_calibration.t1min);
+//    linkReada(DAQ_ID_T2MAX,  &pedal_calibration.t2max);
+//    linkWritea(DAQ_ID_T2MAX, &pedal_calibration.t2max);
+//    linkReada(DAQ_ID_T2MIN,  &pedal_calibration.t2min);
+//    linkWritea(DAQ_ID_T2MIN, &pedal_calibration.t2min);
+//    linkReada(DAQ_ID_B3MAX,  &pedal_calibration.b3max);
+//    linkWritea(DAQ_ID_B3MAX, &pedal_calibration.b3max);
+//    linkReada(DAQ_ID_B3MIN,  &pedal_calibration.b3min);
+//    linkWritea(DAQ_ID_B3MIN, &pedal_calibration.b3min);
+//    linkReada(DAQ_ID_B1,     &raw_pedals.b1);
+//    linkReada(DAQ_ID_B2,     &raw_pedals.b2);
+//    linkReada(DAQ_ID_T1,     &raw_pedals.t1);
+//    linkReada(DAQ_ID_T2,     &raw_pedals.t2);
+//    linkReada(DAQ_ID_B3,     &raw_pedals.b3);
 }
 
 uint8_t cmd[NXT_STR_SIZE] = {'\0'};
 void usartTxUpdate()
 {
-   if (PHAL_usartTxDmaComplete(&huart2) &&
-       qReceive(&q_tx_usart, cmd) == SUCCESS_G)
-   {
-       PHAL_usartTxDma(USART2, &huart2, (uint16_t *) cmd, strlen(cmd));
-   }
+    if (PHAL_usartTxDmaComplete(&huart2) &&
+        qReceive(&q_tx_usart, cmd) == SUCCESS_G)
+    {
+        PHAL_usartTxDma(USART2, &huart2, (uint16_t *) cmd, strlen(cmd));
+    }
 }
 
 void canTxUpdate()
@@ -373,26 +374,26 @@ void canTxUpdate()
 
 void CAN1_RX0_IRQHandler()
 {
-   if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
-       CAN1->RF0R &= !(CAN_RF0R_FOVR0);
+    if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
+        CAN1->RF0R &= !(CAN_RF0R_FOVR0);
 
-   if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
-       CAN1->RF0R &= !(CAN_RF0R_FULL0);
+    if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
+        CAN1->RF0R &= !(CAN_RF0R_FULL0);
 
    if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
    {
        CanMsgTypeDef_t rx;
        rx.Bus = CAN1;
 
-       // Get either StdId or ExtId
-       if (CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR)
-       {
-         rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
-       }
-       else
-       {
-         rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_TI0R_STID_Pos;
-       }
+        // Get either StdId or ExtId
+        if (CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR)
+        {
+          rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
+        }
+        else
+        {
+          rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_TI0R_STID_Pos;
+        }
 
        rx.DLC = (CAN_RDT0R_DLC & CAN1->sFIFOMailBox[0].RDTR) >> CAN_RDT0R_DLC_Pos;
 
@@ -405,9 +406,9 @@ void CAN1_RX0_IRQHandler()
        rx.Data[6] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
        rx.Data[7] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
-       CAN1->RF0R |= (CAN_RF0R_RFOM0);
-       qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
-   }
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
+        qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
+    }
 }
 
 void dashboard_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
@@ -420,10 +421,4 @@ void HardFault_Handler()
 {
    schedPause();
    while(1) IWDG->KR = 0xAAAA;
-}
-
-// EEPROM error function
-void errorFound(eeprom_error_t error)
-{
-   HardFault_Handler();
 }

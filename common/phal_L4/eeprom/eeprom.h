@@ -1,5 +1,7 @@
-#ifndef _PHAL_EEPROM_H_
-#define _PHAL_EEPROM_H_
+
+// #ifndef _PHAL_EEPROM_H_
+// #define _PHAL_EEPROM_H_
+#if FALSE
 
 #ifdef STM32L496xx
 #include "stm32l496xx.h"
@@ -80,14 +82,14 @@
  */
 
 // Structures
-__attribute__((__packed__)) struct phys_mem {
+struct phys_mem {
     bool            init;                               // Memory initialized
     uint16_t        version;                            // Version number -> X.X.X
     char            filename[MAX_PAGES * NAME_LEN];     // 4 character page-name
     uint16_t        pg_bound[MAX_PAGES];                // Page bound offset
     uint16_t        mem_size[MAX_PAGES];                // Size of file in bytes (actual)
     bool            bcmp[MAX_PAGES];                    // Backwards compatibility enabled
-};
+}__attribute__((__packed__));
 
 struct eeprom {
     struct phys_mem phys;                               // Physical
