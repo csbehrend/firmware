@@ -12,6 +12,7 @@
 #include "imu.h"
 #include "main.h"
 #include "gps.h"
+#include "bmm150.h"
 
 uint8_t collect_test[100] = {0};
 
@@ -89,22 +90,27 @@ SPI_InitConfig_t spi_config = {
     .data_rate = TargetCoreClockrateHz / 64,
     .data_len = 8,
     .nss_sw = true,
-    .nss_gpio_port = SPI_CS_GYRO_GPIO_Port,
-    .nss_gpio_pin = SPI_CS_GYRO_Pin,
+    .nss_gpio_port = SPI_CS_MAG_GPIO_Port,
+    .nss_gpio_pin = SPI_CS_MAG_Pin,
     .rx_dma_cfg = &spi_rx_dma_config,
-    .tx_dma_cfg = &spi_tx_dma_config};
+    .tx_dma_cfg = &spi_tx_dma_config,
+    .periph = SPI1};
 
 dma_init_t spi2_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
 dma_init_t spi2_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);
 
 SPI_InitConfig_t spi2_config = {
     .data_rate = TargetCoreClockrateHz / 64,
-    .data_len = 100,
+    .data_len = 8,
     .nss_sw = true,
     .nss_gpio_port = SPI2_CS_GPIO_Port,
     .nss_gpio_pin = SPI2_CS_Pin,
     .rx_dma_cfg = &spi2_rx_dma_config,
-    .tx_dma_cfg = &spi2_tx_dma_config};
+    .tx_dma_cfg = &spi2_tx_dma_config,
+    .periph = SPI2};
+uint8_t num_iterations = 0;
+uint8_t spi2_tx_buffer[100] = {0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19};
+uint8_t spi2_rx_buffer[100] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 BMI088_Handle_t bmi_config = {
     .accel_csb_gpio_port = SPI_CS_ACEL_GPIO_Port,
@@ -118,6 +124,11 @@ BMI088_Handle_t bmi_config = {
     .gyro_range = GYRO_RANGE_250,
     .spi = &spi_config};
 
+BMM150_Handle_t bmm_config = {
+    .spi = &spi_config,
+    .mag_csb_gpio_port = SPI_CS_MAG_GPIO_Port,
+    .mag_csb_pin = SPI_CS_MAG_Pin};
+
 IMU_Handle_t imu_h = {
     .bmi = &bmi_config,
 };
@@ -130,9 +141,12 @@ void preflightChecks(void);
 void sendIMUData(void);
 extern void HardFault_Handler(void);
 void collectGPSData(void);
+void collectMagData(void);
 
 int main(void)
 {
+    // memset(spi2_tx_buffer + 8, 255, 100 - 8);
+
     /* Data Struct Initialization */
     // qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     // qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
@@ -154,10 +168,11 @@ int main(void)
     // }
     // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
 
-    if (!PHAL_SPI_init(&spi2_config))
+    if (!PHAL_SPI_init(&spi_config))
     {
         HardFault_Handler();
     }
+
     // spi_config.data_rate = APB2ClockRateHz / 16;
     // spi2_config.data_rate = APB2ClockRateHz / 16;
     // static uint8_t spi2_rx_buff[100] = {0};
@@ -180,9 +195,10 @@ int main(void)
     configureAnim(preflightAnimation, preflightChecks, 74, 750);
 
     taskCreate(heartBeatLED, 500);
-
+    // taskCreate(collectGPSData, 500);
     // taskCreate(sendIMUData, 10);
     // taskCreate(collectGPSData, 1000);
+    taskCreate(collectMagData, 1000);
 
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
@@ -206,10 +222,14 @@ void preflightChecks(void)
         // }
         // NVIC_EnableIRQ(CAN1_RX0_IRQn);
         break;
-    // case 1:
-    //     if (!BMI088_init(&bmi_config))
-    //         HardFault_Handler();
-    //     break;
+    case 1:
+        // if (!BMI088_init(&bmi_config))
+        //     HardFault_Handler();
+        if (!BMM150_readID(&bmm_config))
+        {
+            HardFault_Handler();
+        }
+        break;
     case 100:
         // Put accel into SPI mode
         PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
@@ -278,9 +298,32 @@ GPS_Handle_t testGPSHandle = {0x00, 0x62, 0x01, 0x07, 0x5C, 0x00, 0x80, 0x10, 0x
 // Test function for usartRxDma
 void collectGPSData(void)
 {
+
     // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
+    while (PHAL_SPI_busy(&spi2_config))
+        ;
+    if (num_iterations == 1)
+    {
+        memset(spi2_tx_buffer, 255, sizeof(spi2_tx_buffer));
+    }
+    else
+    {
+        PHAL_SPI_transfer(&spi2_config, spi2_tx_buffer, 100, spi2_rx_buffer);
+    }
+
+    if (spi2_rx_buffer[0] != 255)
+    {
+        asm("nop");
+    }
+    while (PHAL_SPI_busy(&spi2_config))
+        ;
+    num_iterations++;
 }
 
+void collectMagData(void)
+{
+    BMM150_readMag(&bmm_config);
+}
 // void canTxUpdate(void)
 // {
 //     CanMsgTypeDef_t tx_msg;
