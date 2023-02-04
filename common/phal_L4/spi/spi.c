@@ -65,12 +65,15 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     cfg->periph->CR1 &= ~SPI_CR1_BR_Msk;
     cfg->periph->CR1 |= f_div << SPI_CR1_BR_Pos;
 
-    // Setup DMA channels
-    if (cfg->rx_dma_cfg && !PHAL_initDMA(cfg->rx_dma_cfg))
-        return false;
 
-    if (cfg->tx_dma_cfg && !PHAL_initDMA(cfg->tx_dma_cfg))
-        return false;
+    // Setup DMA channels
+    if (cfg->rx_dma_cfg !=  NULL) {
+        if (cfg->rx_dma_cfg && !PHAL_initDMA(cfg->rx_dma_cfg))
+            return false;
+
+        if (cfg->tx_dma_cfg && !PHAL_initDMA(cfg->tx_dma_cfg))
+            return false;
+    }
 
     PHAL_writeGPIO(cfg->nss_gpio_port, cfg->nss_gpio_pin, 1);
 
@@ -78,6 +81,29 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     cfg->_error = false;
     return true;
 }
+
+bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t txlen, const uint32_t rxlen, uint8_t *in_data) {
+    if (PHAL_SPI_busy(spi))
+        return false;
+    active_transfer = spi;
+    if (spi->nss_sw)
+        PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
+    spi->_busy = true;
+    for (uint8_t i = 0; i < txlen; i++) {
+        while ((spi->periph->SR & SPI_SR_TXE) == SPI_SR_TXE) ;
+        spi->periph->DR = out_data[i];
+    }
+    while ((spi->periph->SR & SPI_SR_TXE) == SPI_SR_TXE) ;
+    for (int i = 0; i < rxlen; i++) {
+        while ((spi->periph->SR & SPI_SR_RXNE) == SPI_SR_RXNE) ;
+        in_data[i] = spi->periph->DR;
+    }
+    if (spi->nss_sw)
+        PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 1);
+    return true;
+
+}
+
 
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data)
 {
