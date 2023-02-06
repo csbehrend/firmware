@@ -99,4 +99,6 @@ void BMM150_powerOnMag(BMM150_Handle_t *bmm);
 bool BMM150_init(BMM150_Handle_t *bmm);
 bool BMM150_readMag(BMM150_Handle_t *bmm);
 void BMM150_setActive(BMM150_Handle_t *bmm);
+bool BMM150_selfTest(BMM150_Handle_t *bmm);
+bool BMM150_selfTestAdvanced(BMM150_Handle_t *bmm);
 #endif

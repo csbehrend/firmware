@@ -30,11 +30,11 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_OUTPUT(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, GPIO_OUTPUT_HIGH_SPEED),
     GPIO_INIT_OUTPUT(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, GPIO_OUTPUT_HIGH_SPEED),
 
-    // GPS SPI2
-    GPIO_INIT_AF(SPI2_SCLK_GPIO_Port, SPI2_SCLK_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
-    GPIO_INIT_AF(SPI2_MOSI_GPIO_Port, SPI2_MOSI_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
-    GPIO_INIT_AF(SPI2_MISO_GPIO_Port, SPI2_MISO_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_OPEN_DRAIN),
-    GPIO_INIT_OUTPUT(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_OUTPUT_HIGH_SPEED),
+    // // GPS SPI2
+    // GPIO_INIT_AF(SPI2_SCLK_GPIO_Port, SPI2_SCLK_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
+    // GPIO_INIT_AF(SPI2_MOSI_GPIO_Port, SPI2_MOSI_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
+    // GPIO_INIT_AF(SPI2_MISO_GPIO_Port, SPI2_MISO_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_OPEN_DRAIN),
+    // GPIO_INIT_OUTPUT(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_OUTPUT_HIGH_SPEED),
 
     // GPS USART
     GPIO_INIT_USART3RX_PC5,
@@ -166,7 +166,6 @@ int main(void)
     // {
     //     HardFault_Handler();
     // }
-    // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
 
     if (!PHAL_SPI_init(&spi_config))
     {
@@ -187,7 +186,7 @@ int main(void)
     // while (1)
     // {
     //     PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
-    //     PHAL_toggleGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin);
+    //     // PHAL_toggleGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin);
     // }
 
     /* Task Creation */
@@ -195,10 +194,10 @@ int main(void)
     configureAnim(preflightAnimation, preflightChecks, 74, 750);
 
     taskCreate(heartBeatLED, 500);
-    // taskCreate(collectGPSData, 500);
+    // taskCreate(collectGPSData, 100);
     // taskCreate(sendIMUData, 10);
     // taskCreate(collectGPSData, 1000);
-    taskCreate(collectMagData, 1000);
+    taskCreate(collectMagData, 100);
 
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
@@ -229,24 +228,28 @@ void preflightChecks(void)
         {
             HardFault_Handler();
         }
+        if (!BMM150_selfTestAdvanced(&bmm_config))
+        {
+            HardFault_Handler();
+        }
         break;
     case 100:
         // Put accel into SPI mode
         PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
         break;
-    // case 250:
-    //     BMI088_powerOnAccel(&bmi_config);
-    //     break;
+    case 250:
+        BMI088_powerOnAccel(&bmi_config);
+        break;
 
-    // case 500:
-    //     if (!BMI088_initAccel(&bmi_config))
-    //         HardFault_Handler();
-    //     break;
+    case 500:
+        if (!BMI088_initAccel(&bmi_config))
+            HardFault_Handler();
+        break;
     default:
         if (state > 750)
         {
-            // if (!imu_init(&imu_h))
-            // HardFault_Handler();
+            if (!imu_init(&imu_h))
+                HardFault_Handler();
             registerPreflightComplete(1);
             state = 255; // prevent wrap around
         }
@@ -299,25 +302,25 @@ GPS_Handle_t testGPSHandle = {0x00, 0x62, 0x01, 0x07, 0x5C, 0x00, 0x80, 0x10, 0x
 void collectGPSData(void)
 {
 
-    // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
-    while (PHAL_SPI_busy(&spi2_config))
-        ;
-    if (num_iterations == 1)
-    {
-        memset(spi2_tx_buffer, 255, sizeof(spi2_tx_buffer));
-    }
-    else
-    {
-        PHAL_SPI_transfer(&spi2_config, spi2_tx_buffer, 100, spi2_rx_buffer);
-    }
+    PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
+    // while (PHAL_SPI_busy(&spi2_config))
+    //     ;
+    // if (num_iterations == 1)
+    // {
+    //     memset(spi2_tx_buffer, 255, sizeof(spi2_tx_buffer));
+    // }
+    // else
+    // {
+    //     PHAL_SPI_transfer(&spi2_config, spi2_tx_buffer, 100, spi2_rx_buffer);
+    // }
 
-    if (spi2_rx_buffer[0] != 255)
-    {
-        asm("nop");
-    }
-    while (PHAL_SPI_busy(&spi2_config))
-        ;
-    num_iterations++;
+    // if (spi2_rx_buffer[0] != 255)
+    // {
+    //     asm("nop");
+    // }
+    // while (PHAL_SPI_busy(&spi2_config))
+    //     ;
+    // num_iterations++;
 }
 
 void collectMagData(void)
