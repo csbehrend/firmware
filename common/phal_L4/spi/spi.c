@@ -9,6 +9,7 @@
  *
  */
 #include "common/phal_L4/spi/spi.h"
+#include "common/psched/psched.h"
 
 extern uint32_t APB2ClockRateHz;
 extern uint32_t APB1ClockRateHz;
@@ -82,24 +83,47 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     return true;
 }
 
-bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t txlen, const uint32_t rxlen, uint8_t *in_data) {
+bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t txlen, uint32_t rxlen, uint8_t *in_data) {
     if (PHAL_SPI_busy(spi))
         return false;
     active_transfer = spi;
+    spi->_busy = true;
+    //Enable SPI
+    spi->periph->CR1 |= SPI_CR1_SPE;
+    //Select peripheral
     if (spi->nss_sw)
         PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
-    spi->_busy = true;
+    //Add messages to TX FIFO
     for (uint8_t i = 0; i < txlen; i++) {
-        while ((spi->periph->SR & SPI_SR_TXE) == SPI_SR_TXE) ;
+        in_data++;
+        while (!(spi->periph->SR & SPI_SR_TXE)) ;
         spi->periph->DR = out_data[i];
     }
-    while ((spi->periph->SR & SPI_SR_TXE) == SPI_SR_TXE) ;
-    for (int i = 0; i < rxlen; i++) {
-        while ((spi->periph->SR & SPI_SR_RXNE) == SPI_SR_RXNE) ;
-        in_data[i] = spi->periph->DR;
+    //Wait till TX FIFO is empty and spi is not active
+    while (!(spi->periph->SR & SPI_SR_TXE) || (spi->periph->SR & SPI_SR_BSY)) ;
+    //Clear overrun
+    uint8_t trash = spi->periph->DR;
+    trash = spi->periph->SR;
+
+    //RX
+    for (uint8_t i = 0; i < rxlen; i++) {
+        //Wait till SPI is not in active transaction, send dummy
+        while ((spi->periph->SR & SPI_SR_BSY));
+        spi->periph->DR = 0;
+        //With for RX FIFO to recieve a message, read it in
+        while (!(spi->periph->SR & SPI_SR_RXNE));
+        in_data[i] =  (uint8_t)(spi->periph->DR);
     }
+    //Stop message
     if (spi->nss_sw)
         PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 1);
+    // Wait till transaction is finished, disable spi, and clear the queue
+    while ((spi->periph->SR & SPI_SR_BSY));
+    spi->periph->CR1 &= ~SPI_CR1_SPE;
+    while ((spi->periph->SR & SPI_SR_FRLVL)) {
+        trash = spi->periph->DR;
+    }
+    spi->_busy = false;
     return true;
 
 }
@@ -364,7 +388,10 @@ uint8_t PHAL_SPI_readByte(SPI_InitConfig_t *spi, uint8_t address, bool skipDummy
 
     while (PHAL_SPI_busy(spi))
         ;
-    PHAL_SPI_transfer(spi, tx_cmd, skipDummy ? 2 : 3, rx_dat);
+    if (spi->rx_dma_cfg)
+        PHAL_SPI_transfer(spi, tx_cmd, skipDummy ? 2 : 3, rx_dat);
+    else
+        PHAL_SPI_transfer_noDMA(spi, tx_cmd, 1, skipDummy ? 1 : 2, rx_dat);
     while (PHAL_SPI_busy(spi))
         ;
 
@@ -380,7 +407,10 @@ uint8_t PHAL_SPI_writeByte(SPI_InitConfig_t *spi, uint8_t address, uint8_t write
 
     while (PHAL_SPI_busy(spi))
         ;
-    PHAL_SPI_transfer(spi, tx_cmd, 2, rx_dat);
+    if (spi->tx_dma_cfg)
+        PHAL_SPI_transfer(spi, tx_cmd, 2, rx_dat);
+    else
+        PHAL_SPI_transfer_noDMA(spi, tx_cmd, 2, 0, rx_dat);
     while (PHAL_SPI_busy(spi))
         ;
 
