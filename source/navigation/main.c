@@ -30,12 +30,6 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_OUTPUT(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, GPIO_OUTPUT_HIGH_SPEED),
     GPIO_INIT_OUTPUT(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, GPIO_OUTPUT_HIGH_SPEED),
 
-    // // GPS SPI2
-    // GPIO_INIT_AF(SPI2_SCLK_GPIO_Port, SPI2_SCLK_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
-    // GPIO_INIT_AF(SPI2_MOSI_GPIO_Port, SPI2_MOSI_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_PULL_DOWN),
-    // GPIO_INIT_AF(SPI2_MISO_GPIO_Port, SPI2_MISO_Pin, 5, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_OPEN_DRAIN),
-    // GPIO_INIT_OUTPUT(SPI2_CS_GPIO_Port, SPI2_CS_Pin, GPIO_OUTPUT_HIGH_SPEED),
-
     // GPS USART
     GPIO_INIT_USART3RX_PC5,
     GPIO_INIT_USART3TX_PC4,
@@ -92,25 +86,16 @@ SPI_InitConfig_t spi_config = {
     .nss_sw = true,
     .nss_gpio_port = SPI_CS_MAG_GPIO_Port,
     .nss_gpio_pin = SPI_CS_MAG_Pin,
-    .rx_dma_cfg = &spi_rx_dma_config,
-    .tx_dma_cfg = &spi_tx_dma_config,
+    .rx_dma_cfg = NULL,
+    .tx_dma_cfg = NULL,
+    // .rx_dma_cfg = &spi_rx_dma_config,
+    // .tx_dma_cfg = &spi_tx_dma_config,
     .periph = SPI1};
 
-dma_init_t spi2_rx_dma_config = SPI2_RXDMA_CONT_CONFIG(NULL, 2);
-dma_init_t spi2_tx_dma_config = SPI2_TXDMA_CONT_CONFIG(NULL, 1);
-
-SPI_InitConfig_t spi2_config = {
-    .data_rate = TargetCoreClockrateHz / 64,
-    .data_len = 8,
-    .nss_sw = true,
-    .nss_gpio_port = SPI2_CS_GPIO_Port,
-    .nss_gpio_pin = SPI2_CS_Pin,
-    .rx_dma_cfg = &spi2_rx_dma_config,
-    .tx_dma_cfg = &spi2_tx_dma_config,
-    .periph = SPI2};
 uint8_t num_iterations = 0;
-uint8_t spi2_tx_buffer[100] = {0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19};
-uint8_t spi2_rx_buffer[100] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+// Test Nav Message
+GPS_Handle_t testGPSHandle = {};
 
 BMI088_Handle_t bmi_config = {
     .accel_csb_gpio_port = SPI_CS_ACEL_GPIO_Port,
@@ -123,12 +108,10 @@ BMI088_Handle_t bmi_config = {
     .gyro_datarate = GYRO_DR_100Hz_32Hz,
     .gyro_range = GYRO_RANGE_250,
     .spi = &spi_config};
-
 BMM150_Handle_t bmm_config = {
     .spi = &spi_config,
     .mag_csb_gpio_port = SPI_CS_MAG_GPIO_Port,
     .mag_csb_pin = SPI_CS_MAG_Pin};
-
 IMU_Handle_t imu_h = {
     .bmi = &bmi_config,
 };
@@ -139,9 +122,9 @@ void heartBeatLED(void);
 void preflightAnimation(void);
 void preflightChecks(void);
 void sendIMUData(void);
-extern void HardFault_Handler(void);
 void collectGPSData(void);
 void collectMagData(void);
+extern void HardFault_Handler(void);
 
 int main(void)
 {
@@ -156,33 +139,32 @@ int main(void)
     {
         HardFault_Handler();
     }
+
+    /* GPIO initialization */
     if (!PHAL_initGPIO(gpio_config, sizeof(gpio_config) / sizeof(GPIOInitConfig_t)))
     {
         HardFault_Handler();
     }
 
-    // huart_gps.rx_dma_cfg->circular = true;
-    // if (!PHAL_initUSART(USART3, &huart_gps, APB1ClockRateHz))
-    // {
-    //     HardFault_Handler();
-    // }
+    /* USART initialization */
+    huart_gps.rx_dma_cfg->circular = true;
+    if (!PHAL_initUSART(USART3, &huart_gps, APB1ClockRateHz))
+    {
+        HardFault_Handler();
+    }
+    PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)testGPSHandle.raw_message, 100);
 
+    /* SPI initialization */
     if (!PHAL_SPI_init(&spi_config))
     {
         HardFault_Handler();
     }
+    spi_config.data_rate = APB2ClockRateHz / 16;
 
-    // spi_config.data_rate = APB2ClockRateHz / 16;
-    // spi2_config.data_rate = APB2ClockRateHz / 16;
-    // static uint8_t spi2_rx_buff[100] = {0};
-    // static uint8_t spi2_tx_buff[100] = {0};
-    // PHAL_SPI_transfer(&spi2_config, spi2_tx_buff, 100, &spi2_rx_buff);
-
-    // if (!PHAL_SPI_init(&spi_config))
-    //     HardFault_Handler();
-    PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 0);
+    PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
     PHAL_writeGPIO(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, 1);
     PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 1);
+
     // while (1)
     // {
     //     PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
@@ -194,10 +176,10 @@ int main(void)
     configureAnim(preflightAnimation, preflightChecks, 74, 750);
 
     taskCreate(heartBeatLED, 500);
-    // taskCreate(collectGPSData, 100);
-    // taskCreate(sendIMUData, 10);
-    // taskCreate(collectGPSData, 1000);
-    taskCreate(collectMagData, 100);
+
+    taskCreate(sendIMUData, 10);
+    taskCreate(collectGPSData, 1000);
+    // taskCreate(collectMagData, 100);
 
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
@@ -222,20 +204,16 @@ void preflightChecks(void)
         // NVIC_EnableIRQ(CAN1_RX0_IRQn);
         break;
     case 1:
-        // if (!BMI088_init(&bmi_config))
+        if (!BMI088_init(&bmi_config))
+            HardFault_Handler();
+        // if (!BMM150_readID(&bmm_config))
+        // {
         //     HardFault_Handler();
-        if (!BMM150_readID(&bmm_config))
-        {
-            HardFault_Handler();
-        }
-        if (!BMM150_selfTestAdvanced(&bmm_config))
-        {
-            HardFault_Handler();
-        }
+        // }
         break;
     case 100:
         // Put accel into SPI mode
-        PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
+        // PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
         break;
     case 250:
         BMI088_powerOnAccel(&bmi_config);
@@ -295,14 +273,15 @@ void sendIMUData(void)
     imu_periodic(&imu_h);
 }
 
-// Test Nav Message
-GPS_Handle_t testGPSHandle = {0x00, 0x62, 0x01, 0x07, 0x5C, 0x00, 0x80, 0x10, 0xC1, 0x08, 0xE7, 0x07, 0x01, 0x02, 0x10, 0x2F, 0x20, 0xF3, 0xFF, 0xFF, 0xFF, 0xFF, 0xB0, 0xB1, 0xD8, 0x17, 0x03, 0x01, 0xEA, 0x05, 0x32, 0x3B, 0xEC, 0xCB, 0x92, 0x1D, 0xA7, 0x16, 0xBF, 0xB6, 0x01, 0x00, 0xD2, 0x34, 0x02, 0x00, 0x85, 0x0D, 0x00, 0x00, 0x8A, 0x29, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x0D, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x01, 0x00, 0x00, 0x72, 0x1A, 0xFC, 0x00, 0x6B, 0x01, 0x00, 0x00, 0xEE, 0x13, 0x4F, 0x2F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x97};
+uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
 
 // Test function for usartRxDma
 void collectGPSData(void)
 {
-
-    PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
+    parseVelocity(&testGPSHandle);
+    // PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
+    // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
+    // PHAL_usartTxDma(USART3, &huart_gps, (uint16_t *)poll_pvt, strlen(poll_pvt));
     // while (PHAL_SPI_busy(&spi2_config))
     //     ;
     // if (num_iterations == 1)

@@ -66,9 +66,9 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     cfg->periph->CR1 &= ~SPI_CR1_BR_Msk;
     cfg->periph->CR1 |= f_div << SPI_CR1_BR_Pos;
 
-
     // Setup DMA channels
-    if (cfg->rx_dma_cfg !=  NULL) {
+    if (cfg->rx_dma_cfg != NULL)
+    {
         if (cfg->rx_dma_cfg && !PHAL_initDMA(cfg->rx_dma_cfg))
             return false;
 
@@ -83,51 +83,66 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
     return true;
 }
 
-bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t txlen, uint32_t rxlen, uint8_t *in_data) {
+bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
+{
+    SPI1->CR1 &= ~(1 << 11);
+    in_data += txlen;
     if (PHAL_SPI_busy(spi))
         return false;
     active_transfer = spi;
     spi->_busy = true;
-    //Enable SPI
+    // Enable SPI
     spi->periph->CR1 |= SPI_CR1_SPE;
-    //Select peripheral
+    // Select peripheral
     if (spi->nss_sw)
         PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
-    //Add messages to TX FIFO
-    for (uint8_t i = 0; i < txlen; i++) {
-        in_data++;
-        while (!(spi->periph->SR & SPI_SR_TXE)) ;
-        spi->periph->DR = out_data[i];
+    // Add messages to TX FIFO
+    // for (uint8_t i = 0; i < txlen; i++)
+    // {
+    //     while (!(spi->periph->SR & SPI_SR_TXE))
+    //         ;
+    //     spi->periph->DR = out_data[i];
+    // }
+    uint8_t idx = 0;
+    while (idx < txlen)
+    {
+        while (!(spi->periph->SR & SPI_SR_TXE))
+            ;
+        spi->periph->DR = (out_data[idx++]);
     }
-    //Wait till TX FIFO is empty and spi is not active
-    while (!(spi->periph->SR & SPI_SR_TXE) || (spi->periph->SR & SPI_SR_BSY)) ;
-    //Clear overrun
+    // Wait till TX FIFO is empty and spi is not active
+    while (!(spi->periph->SR & SPI_SR_TXE) || (spi->periph->SR & SPI_SR_BSY))
+        ;
+    // Clear overrun
     uint8_t trash = spi->periph->DR;
     trash = spi->periph->SR;
 
-    //RX
-    for (uint8_t i = 0; i < rxlen; i++) {
-        //Wait till SPI is not in active transaction, send dummy
-        while ((spi->periph->SR & SPI_SR_BSY));
-        spi->periph->DR = 0;
-        //With for RX FIFO to recieve a message, read it in
-        while (!(spi->periph->SR & SPI_SR_RXNE));
-        in_data[i] =  (uint8_t)(spi->periph->DR);
+    // RX
+    for (uint8_t i = 0; i < rxlen; i++)
+    {
+        // Wait till SPI is not in active transaction, send dummy
+        while ((spi->periph->SR & SPI_SR_BSY))
+            ;
+        // spi->periph->DR = 0;
+        // With for RX FIFO to recieve a message, read it in
+        while (!(spi->periph->SR & SPI_SR_RXNE))
+            ;
+        in_data[i] = (uint8_t)(spi->periph->DR);
     }
-    //Stop message
+    // Stop message
     if (spi->nss_sw)
         PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 1);
     // Wait till transaction is finished, disable spi, and clear the queue
-    while ((spi->periph->SR & SPI_SR_BSY));
-    spi->periph->CR1 &= ~SPI_CR1_SPE;
-    while ((spi->periph->SR & SPI_SR_FRLVL)) {
+    while ((spi->periph->SR & SPI_SR_BSY))
+        ;
+    // spi->periph->CR1 &= ~SPI_CR1_SPE;
+    while ((spi->periph->SR & SPI_SR_FRLVL))
+    {
         trash = spi->periph->DR;
     }
     spi->_busy = false;
     return true;
-
 }
-
 
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data)
 {
@@ -383,12 +398,12 @@ void DMA1_Channel4_IRQHandler()
 uint8_t PHAL_SPI_readByte(SPI_InitConfig_t *spi, uint8_t address, bool skipDummy)
 {
     static uint8_t tx_cmd[4] = {(1 << 7), 0, 0};
-    static uint8_t rx_dat[4] = {0};
+    static uint8_t rx_dat[4] = {1, 1, 1, 1};
     tx_cmd[0] |= (address & 0x7F);
 
     while (PHAL_SPI_busy(spi))
         ;
-    if (spi->rx_dma_cfg)
+    if (spi->rx_dma_cfg != NULL)
         PHAL_SPI_transfer(spi, tx_cmd, skipDummy ? 2 : 3, rx_dat);
     else
         PHAL_SPI_transfer_noDMA(spi, tx_cmd, 1, skipDummy ? 1 : 2, rx_dat);
@@ -407,7 +422,7 @@ uint8_t PHAL_SPI_writeByte(SPI_InitConfig_t *spi, uint8_t address, uint8_t write
 
     while (PHAL_SPI_busy(spi))
         ;
-    if (spi->tx_dma_cfg)
+    if (spi->tx_dma_cfg != NULL)
         PHAL_SPI_transfer(spi, tx_cmd, 2, rx_dat);
     else
         PHAL_SPI_transfer_noDMA(spi, tx_cmd, 2, 0, rx_dat);

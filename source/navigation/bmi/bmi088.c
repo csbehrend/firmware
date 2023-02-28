@@ -101,9 +101,9 @@ bool BMI088_readGyro(BMI088_Handle_t *bmi, vector_3d_t *v)
         ;
 
     spi_tx_buff[0] = (1 << 7) | BMI088_GYRO_RATE_X_LSB_ADDR;
-    PHAL_SPI_transfer(bmi->spi, spi_tx_buff, 7, spi_rx_buff);
-    while (PHAL_SPI_busy(bmi->spi))
-        ;
+    PHAL_SPI_transfer_noDMA(bmi->spi, spi_tx_buff, 1, 7, spi_rx_buff);
+    // while (PHAL_SPI_busy(bmi->spi))
+    //     ;
     int16_t raw_x, raw_y, raw_z;
     raw_x = (((int16_t)spi_rx_buff[2]) << 8) | spi_rx_buff[1];
     raw_y = (((int16_t)spi_rx_buff[4]) << 8) | spi_rx_buff[3];
@@ -176,9 +176,9 @@ bool BMI088_readAccel(BMI088_Handle_t *bmi, vector_3d_t *v)
         ;
 
     spi_tx_buff[0] = (1 << 7) | BMI088_ACC_RATE_X_LSB_ADDR;
-    PHAL_SPI_transfer(bmi->spi, spi_tx_buff, 8, spi_rx_buff);
-    while (PHAL_SPI_busy(bmi->spi))
-        ;
+    PHAL_SPI_transfer_noDMA(bmi->spi, spi_tx_buff, 1, 7, spi_rx_buff);
+    // while (PHAL_SPI_busy(bmi->spi))
+    //     ;
     int16_t raw_ax, raw_ay, raw_az;
     raw_ax = (((int16_t)spi_rx_buff[2 + 1]) << 8) | spi_rx_buff[1 + 1];
     raw_ay = (((int16_t)spi_rx_buff[4 + 1]) << 8) | spi_rx_buff[3 + 1];

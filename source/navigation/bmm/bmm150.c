@@ -35,31 +35,44 @@ int16_t result_value_z;
 
 int16_t main_result;
 int16_t diff;
+
 bool BMM150_readMag(BMM150_Handle_t *bmm)
 {
+    // SPI rx and tx buffers
     static uint8_t spi_rx_buff[16] = {0};
     static uint8_t spi_tx_buff[16] = {0};
 
+    // Prepare tx buffer with x axis LSB address
     spi_tx_buff[0] = (1 << 7) | BMM150_MAG_X_LSB_ADDR;
+
+    // SPI nss for BMM
     BMM150_selectMag(bmm);
-    while (PHAL_SPI_busy(bmm->spi))
-        ;
-    PHAL_SPI_transfer(bmm->spi, spi_tx_buff, 7, spi_rx_buff);
+
+    // Wait until spi is available
     while (PHAL_SPI_busy(bmm->spi))
         ;
 
+    // Complete transfer
+    PHAL_SPI_transfer_noDMA(bmm->spi, spi_tx_buff, 1, 6, spi_rx_buff);
+    // while (PHAL_SPI_busy(bmm->spi))
+    //     ;
+
+    // Parse x axis mag
     new_xa = (spi_rx_buff[1] >> 3) & 0x001f;
     new_xb = (spi_rx_buff[2] << 8) & 0xff00;
     result_value_x = new_xa | (new_xb >> 3);
 
+    // Parse y axis mag
     new_ya = (spi_rx_buff[3] >> 3) & 0x001f;
     new_yb = (spi_rx_buff[4] << 8) & 0xff00;
     result_value_y = new_ya | (new_yb >> 3);
 
+    // Parse z axis mag
     new_za = (spi_rx_buff[5] >> 1) & 0x7f;
     new_zb = (spi_rx_buff[6] << 8) & 0xff00;
     result_value_z = new_za | new_zb;
 
+    // Main result (needs to be sqrt)
     main_result = (result_value_x * result_value_x) + (result_value_y * result_value_y) + (result_value_y * result_value_y);
 
     return true;
@@ -117,6 +130,7 @@ bool BMM150_selfTestAdvanced(BMM150_Handle_t *bmm)
     BMM150_setActive(bmm);
     return true;
 }
+
 void BMM150_powerOnMag(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
@@ -132,7 +146,7 @@ void BMM150_setActive(BMM150_Handle_t *bmm)
     return;
 }
 
-uint8_t testresult = 0;
+uint8_t testresult = 0; // Stores returned BMM150 Chip ID
 bool BMM150_readID(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
@@ -142,6 +156,7 @@ bool BMM150_readID(BMM150_Handle_t *bmm)
         return false;
     return true;
 }
+
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm)
 {
     bmm->spi->nss_gpio_port = bmm->mag_csb_gpio_port;

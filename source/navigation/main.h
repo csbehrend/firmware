@@ -38,16 +38,6 @@
 #define SPI_CS_MAG_GPIO_Port (GPIOB)
 #define SPI_CS_MAG_Pin (0)
 
-// SPI2 GPS
-#define SPI2_SCLK_GPIO_Port (GPIOB)
-#define SPI2_SCLK_Pin (10)
-#define SPI2_MISO_GPIO_Port (GPIOC)
-#define SPI2_MISO_Pin (2)
-#define SPI2_MOSI_GPIO_Port (GPIOC)
-#define SPI2_MOSI_Pin (3)
-#define SPI2_CS_GPIO_Port (GPIOB)
-#define SPI2_CS_Pin (9)
-
 // USART GPS
 #define GPS_RX_GPIO_Port (GPIOC)
 #define GPS_RX_Pin (5)

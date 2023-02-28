@@ -46,4 +46,6 @@ typedef struct
     signed short mag_dec;
 } GPS_Handle_t; // GPS handle
 
+bool parseVelocity(GPS_Handle_t *GPS);
+
 #endif //_GPS_H
