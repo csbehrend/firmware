@@ -97,18 +97,18 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     if (spi->nss_sw)
         PHAL_writeGPIO(spi->nss_gpio_port, spi->nss_gpio_pin, 0);
     // Add messages to TX FIFO
-    // for (uint8_t i = 0; i < txlen; i++)
-    // {
-    //     while (!(spi->periph->SR & SPI_SR_TXE))
-    //         ;
-    //     spi->periph->DR = out_data[i];
-    // }
-    uint8_t idx = 0;
-    while (idx < txlen)
+    for (uint8_t i = 0; i < txlen; i++)
     {
         while (!(spi->periph->SR & SPI_SR_TXE))
             ;
-        spi->periph->DR = (out_data[idx++]);
+        if (i + 1 < txlen) {
+            uint16_t data = out_data[i + 1] << 8 | (uint16_t) out_data[i];
+            spi->periph->DR = data;
+            i++;
+        }
+        else  {
+            spi->periph->DR = out_data[i];
+        }
     }
     // Wait till TX FIFO is empty and spi is not active
     while (!(spi->periph->SR & SPI_SR_TXE) || (spi->periph->SR & SPI_SR_BSY))
@@ -123,7 +123,7 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
         // Wait till SPI is not in active transaction, send dummy
         while ((spi->periph->SR & SPI_SR_BSY))
             ;
-        // spi->periph->DR = 0;
+        spi->periph->DR = 0;
         // With for RX FIFO to recieve a message, read it in
         while (!(spi->periph->SR & SPI_SR_RXNE))
             ;
@@ -135,7 +135,7 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     // Wait till transaction is finished, disable spi, and clear the queue
     while ((spi->periph->SR & SPI_SR_BSY))
         ;
-    // spi->periph->CR1 &= ~SPI_CR1_SPE;
+    spi->periph->CR1 &= ~SPI_CR1_SPE;
     while ((spi->periph->SR & SPI_SR_FRLVL))
     {
         trash = spi->periph->DR;
