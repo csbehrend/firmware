@@ -173,13 +173,13 @@ int main(void)
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
-    configureAnim(preflightAnimation, preflightChecks, 74, 750);
+    configureAnim(preflightAnimation, preflightChecks, 74, 1000);
 
     taskCreate(heartBeatLED, 500);
 
     taskCreate(sendIMUData, 10);
-    taskCreate(collectGPSData, 1000);
-    // taskCreate(collectMagData, 100);
+    taskCreate(collectGPSData, 40);
+    //  taskCreate(collectMagData, 100);
 
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
@@ -213,7 +213,7 @@ void preflightChecks(void)
         break;
     case 100:
         // Put accel into SPI mode
-        // PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
+        PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
         break;
     case 250:
         BMI088_powerOnAccel(&bmi_config);
@@ -229,7 +229,7 @@ void preflightChecks(void)
             if (!imu_init(&imu_h))
                 HardFault_Handler();
             registerPreflightComplete(1);
-            state = 255; // prevent wrap around
+            state = 750; // prevent wrap around
         }
         break;
     }
@@ -250,12 +250,12 @@ void preflightAnimation(void)
         PHAL_writeGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin, 1);
         break;
     case 1:
-    case 4:
-        PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
-        break;
     case 2:
     case 3:
         PHAL_writeGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin, 1);
+        break;
+    case 4:
+        PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
         break;
     }
 }
@@ -278,6 +278,7 @@ uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
 // Test function for usartRxDma
 void collectGPSData(void)
 {
+    testGPSHandle.messages_received++;
     parseVelocity(&testGPSHandle);
     // PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
     // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
