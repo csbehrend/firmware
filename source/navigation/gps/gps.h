@@ -27,6 +27,7 @@ union i_Short
 
 typedef struct
 {
+    signed long messages_received;
     uint8_t raw_message[100];
     uint8_t g_speed_bytes[4];
     signed long g_speed;
@@ -44,6 +45,7 @@ typedef struct
     signed long d_vel;
     uint8_t mag_dec_bytes[2];
     signed short mag_dec;
+    uint8_t fix_type;
 } GPS_Handle_t; // GPS handle
 
 bool parseVelocity(GPS_Handle_t *GPS);
