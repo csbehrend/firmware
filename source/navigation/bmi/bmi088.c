@@ -190,7 +190,7 @@ bool BMI088_readAccel(BMI088_Handle_t *bmi, vector_3d_t *v)
     v->y = (float)(raw_ax << (bmi->accel_range + 1)) / 32768.0f * G_TO_M_S * 1.5f;
     v->x = (float)(raw_ay << (bmi->accel_range + 1)) / 32768.0f * G_TO_M_S * 1.5f;
     v->z = (float)(raw_az << (bmi->accel_range + 1)) / 32768.0f * G_TO_M_S * 1.5f;
-
+    //asm("nop");
     return true;
 }
 

@@ -9,6 +9,7 @@
 //  */
 
 #include <stdint.h>
+#include "bsxlite_interface.h"
 
 #ifndef _GPS_H
 #define _GPS_H
@@ -27,6 +28,8 @@ union i_Short
 
 typedef struct
 {
+    vector_3d_t acceleration;
+    vector_3d_t gyroscope;
     signed long messages_received;
     uint8_t raw_message[100];
     uint8_t g_speed_bytes[4];

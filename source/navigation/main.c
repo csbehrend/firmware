@@ -96,6 +96,7 @@ uint8_t num_iterations = 0;
 
 // Test Nav Message
 GPS_Handle_t testGPSHandle = {};
+vector_3d_t accel_in, gyro_in, mag_in;
 
 BMI088_Handle_t bmi_config = {
     .accel_csb_gpio_port = SPI_CS_ACEL_GPIO_Port,
@@ -179,7 +180,7 @@ int main(void)
 
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
-    //  taskCreate(collectMagData, 100);
+    taskCreate(collectMagData, 100);
 
     // taskCreateBackground(canTxUpdate);
     // taskCreateBackground(canRxUpdate);
@@ -206,10 +207,10 @@ void preflightChecks(void)
     case 1:
         if (!BMI088_init(&bmi_config))
             HardFault_Handler();
-        // if (!BMM150_readID(&bmm_config))
-        // {
-        //     HardFault_Handler();
-        // }
+        if (!BMM150_readID(&bmm_config))
+        {
+            HardFault_Handler();
+        }
         break;
     case 100:
         // Put accel into SPI mode
@@ -279,6 +280,10 @@ uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
 void collectGPSData(void)
 {
     testGPSHandle.messages_received++;
+    BMI088_readGyro(&bmi_config, &gyro_in);
+    BMI088_readAccel(&bmi_config, &accel_in);
+    testGPSHandle.acceleration = accel_in;
+    testGPSHandle.gyroscope = gyro_in;
     parseVelocity(&testGPSHandle);
     // PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
     // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);

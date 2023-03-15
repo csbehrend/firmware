@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "gps.h"
+
 union i_Long iLong;
 union i_Short iShort;
-
-// Test Nav Message
+// Nav Message
 GPS_Handle_t gps_handle = {.raw_message = {0},
                            .g_speed = 0,
                            .g_speed_bytes = {0xFF, 0xFF, 0xFF, 0xFF},

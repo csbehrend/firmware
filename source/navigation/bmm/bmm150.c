@@ -146,15 +146,18 @@ void BMM150_setActive(BMM150_Handle_t *bmm)
     return;
 }
 
-uint8_t testresult = 0; // Stores returned BMM150 Chip ID
 bool BMM150_readID(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
-    BMM150_powerOnMag(bmm);
-    testresult = PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true);
+    PHAL_SPI_writeByte(bmm->spi, 0x4b, 0b00000001);
     if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
         return false;
     return true;
+    // BMM150_powerOnMag(bmm);
+    // testresult = PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true);
+    // if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
+    //     return false;
+    // return true;
 }
 
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm)
