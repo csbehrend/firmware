@@ -97,6 +97,7 @@ extern uint32_t PLLClockRateHz;
 /* Function Prototypes */
 void preflightChecks(void);
 void ledBlink(void);
+void canTxUpdate(void);
 extern void HardFault_Handler();
 
 q_handle_t q_tx_can;
@@ -182,12 +183,21 @@ void preflightChecks(void) {
 
 void ledBlink()
 {
-    PHAL_toggleGPIO(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+    PHAL_toggleGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
+}
+/* CAN Message Handling */
+void canTxUpdate()
+{
+    CanMsgTypeDef_t tx_msg;
+    if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
+    {
+        PHAL_txCANMessage(&tx_msg);
+    }
 }
 
 void HardFault_Handler()
 {
-    PHAL_writeGPIO(ERR_LED_GPIO_Port, ERR_LED_Pin, 1);
+    PHAL_writeGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, 1);
     while(1)
     {
         __asm__("nop");
