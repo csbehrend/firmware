@@ -17,7 +17,7 @@
 
 #include "common/faults/fault_nodes.h"
 
-#define FAULT_NODE_NAME NODE_MAIN_MODULE
+#define FAULT_NODE_NAME NODE_FORCE_SENSOR
 
 // LV Status
 #define FORCE_SENSE0_GPIO_Port    (GPIOA)
@@ -30,10 +30,18 @@
 
 #define FORCE_SENSE2_GPIO_Port     (GPIOB)
 #define FORCE_SENSE2_Pin           (0)
-#define FORCE_SENSE2_SENSE_ADC_CHNL      (15)
+#define FORCE_SENSE2_ADC_CHNL      (15)
 
 #define FORCE_SENSE3_GPIO_Port    (GPIOB)
 #define FORCE_SENSE3_Pin          (1)
 #define FORCE_SENSE3_ADC_CHNL     (16)
+
+// Status LEDs
+#define ERROR_LED_GPIO_Port (GPIOA)
+#define ERROR_LED_Pin       (15)
+#define CONN_LED_GPIO_Port (GPIOB)
+#define CONN_LED_Pin       (4)
+#define HEARTBEAT_LED_GPIO_Port (GPIOB)
+#define HEARTBEAT_LED_Pin       (5)
 
 #endif
