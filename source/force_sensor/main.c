@@ -15,6 +15,7 @@
 
 /* Module Includes */
 #include "main.h"
+#include "testbench.h"
 
 
 GPIOInitConfig_t gpio_config[] = {
@@ -100,13 +101,13 @@ void ledBlink(void);
 void canTxUpdate(void);
 extern void HardFault_Handler();
 
-q_handle_t q_tx_can;
-q_handle_t q_rx_can;
+//q_handle_t q_tx_can;
+//q_handle_t q_rx_can;
 
 int main(void){
 
-    qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
-    qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
+    //qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
+    //qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
 
     /* HAL Initialization */
     if(0 != PHAL_configureClockRates(&clock_config))
@@ -170,7 +171,7 @@ void preflightChecks(void) {
             
            break;
        case 2:
-           initCANParse(&q_rx_can);
+           //initCANParse(&q_rx_can);
            if(daqInit(&q_tx_can))
                HardFault_Handler();
            initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, ID_FAULT_SYNC_MAIN_MODULE);

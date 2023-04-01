@@ -1,51 +1,28 @@
 #include "testbench.h"
 
-static void tiParseMessage(micro_t *m);
 static int16_t tiParseTerm(char *rx_buf, uint8_t start, char *search_term, uint32_t *val_addr);
 
-void tiInit(micro_t *m, q_handle_t *tx_queue){
-    *m = (micro_t) {
-        .tx_queue    = tx_queue,
-        .data_stale  = true,
-        .last_parse_time = 0xFFFF0000,
-        .last_rx_time = 0xFFFF0000,
-        .last_msg_time = 0xFFF0000,
-        .last_serial_time = 0xFFF0000,
-        .Tx_in[0] = 0,
-        .Tx_in[1] = 0,
-        .Tx_in[2] = 0,
-        .Tx_in[3] = 0
+void forceInit(force_t *m, q_handle_t *tx_queue){
+    *m = (force_t) {
+        .tx_queue    = tx_queue
     };
 
-        return;
+    return;
 }
 
-void tiSetParam(float pow_left, motor_t *m, micro_t *mi, ExtU* rtU, WheelSpeeds_t *w)
+void forceSetParam(force_t *mi, ADCReadings_t *adc)
 {
     char cmd[56]; // 37 byte + '\0'
     int arg1;
-    int arg2;
-    int arg3;
-    int arg4;
-    int arg5;
-    int arg6;
-    int arg7;
-    int arg8;
 
-    arg1 = m->current_x10 * 10;
-    arg2 = m->voltage_x10 * 10;
-    arg3 = m->rpm * 10;
-    arg4 = m->motor_temp * 100;
-    arg5 = pow_left * 100;
-    arg6 = (int) (w->last_update_ms);
-    arg7 = (int) (w->l->rad_s * 100);
-    arg8 = (int) (w->l->tim->CNT);
+    arg1 = adc->lv_5_v_sense;
 
-    snprintf(cmd, 56, "%04d,%05d,%06d,%04d,%05d,%06d,%10d,%06d\r\n\0", arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+
+    snprintf(cmd, 56, "%04d\r\n\0", arg1);
     qSendToBack(mi->tx_queue, cmd);
 }
 
-void tiPeriodic(micro_t* m) {
+void tiPeriodic(force_t* m) {
     tiParseMessage(m);   
 }
 

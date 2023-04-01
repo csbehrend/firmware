@@ -5,7 +5,6 @@
 #include "common/common_defs/common_defs.h"
 #include "common/psched/psched.h"
 #include "common/queue/queue.h"
-#include "source/driveline/can/can_parse.h"
 #include "stm32l432xx.h"
 #include "string.h"
 #include "stdio.h"
@@ -67,9 +66,27 @@ typedef struct
     uint16_t      raw;
 
     q_handle_t   *tx_queue;                         // FIFO for tx commands to be sent via DMA
-    bool          data_stale;                       // True if data has not been parsed for MC_PARSE_TIMEOUT
-} micro_t;
+} force_t;
 
+typedef struct 
+{
+    // Do not modify this struct unless
+    // you modify the ADC DMA config
+    // in main.h to match
+    uint16_t v_mc;
+    uint16_t v_bat;
+    uint16_t shock_l;
+    uint16_t shock_r;
+    uint16_t lv_24_v_sense;
+    uint16_t lv_24_i_sense;
+    uint16_t lv_12_v_sense;
+    uint16_t lv_5_v_sense;
+    uint16_t lv_5_i_sense;
+    uint16_t lv_3v3_v_sense;
+    uint16_t therm_mux_d;
+}__attribute__((packed)) ADCReadings_t;
+
+volatile ADCReadings_t adc_readings;
 
 void tiInit(micro_t *m, q_handle_t *tx_queue);
 void tiPeriodic(micro_t *m);
