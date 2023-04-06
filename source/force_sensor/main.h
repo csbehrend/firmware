@@ -19,7 +19,13 @@
 
 #define FAULT_NODE_NAME NODE_FORCE_SENSOR
 
-// LV Status
+// Force Sensors
+
+#define FORCE_SENSE0_GPIO_Port    (GPIOB)
+#define FORCE_SENSE0_Pin          (0)
+#define FORCE_SENSE0_ADC_CHNL     (15)
+
+/*
 #define FORCE_SENSE0_GPIO_Port    (GPIOA)
 #define FORCE_SENSE0_Pin          (6)
 #define FORCE_SENSE0_ADC_CHNL     (11)
@@ -35,6 +41,7 @@
 #define FORCE_SENSE3_GPIO_Port    (GPIOB)
 #define FORCE_SENSE3_Pin          (1)
 #define FORCE_SENSE3_ADC_CHNL     (16)
+*/
 
 // Status LEDs
 #define ERROR_LED_GPIO_Port (GPIOA)

@@ -1,16 +1,21 @@
 #ifndef __TESTBENCH_H__
 #define __TESTBENCH_H__
 
+/*
 #include "common/phal_L4/usart/usart.h"
 #include "common/common_defs/common_defs.h"
 #include "common/psched/psched.h"
+
+
+
+#include "plettenberg.h"
+#include "MC_PL0.h"
+#include "common/modules/wheel_speeds/wheel_speeds.h"
+*/
 #include "common/queue/queue.h"
 #include "stm32l432xx.h"
 #include "string.h"
 #include "stdio.h"
-#include "plettenberg.h"
-#include "MC_PL0.h"
-#include "common/modules/wheel_speeds/wheel_speeds.h"
 
 #define TI_MAX_TX_LENGTH (104)
 #define TI_MAX_RX_LENGTH (40)
@@ -73,6 +78,7 @@ typedef struct
     // Do not modify this struct unless
     // you modify the ADC DMA config
     // in main.h to match
+    /*
     uint16_t v_mc;
     uint16_t v_bat;
     uint16_t shock_l;
@@ -84,12 +90,14 @@ typedef struct
     uint16_t lv_5_i_sense;
     uint16_t lv_3v3_v_sense;
     uint16_t therm_mux_d;
+    */
+    uint16_t force_0;
 }__attribute__((packed)) ADCReadings_t;
 
 volatile ADCReadings_t adc_readings;
 
-void tiInit(micro_t *m, q_handle_t *tx_queue);
-void tiPeriodic(micro_t *m);
-void tiSetParam(float pow_left, motor_t *m, micro_t *mi, ExtU *rtU, WheelSpeeds_t *w);
+void forceInit(force_t *m, q_handle_t *tx_queue);
+void tiPeriodic(force_t *m);
+void forceSetParam(force_t *mi, ADCReadings_t *adc);
 
 #endif

@@ -16,7 +16,7 @@
 /* Module Includes */
 #include "main.h"
 #include "testbench.h"
-
+#include "power_monitor.h"
 
 GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(FORCE_SENSE0_GPIO_Port, FORCE_SENSE0_Pin),
@@ -24,9 +24,7 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(FORCE_SENSE2_GPIO_Port, FORCE_SENSE2_Pin),
     GPIO_INIT_ANALOG(FORCE_SENSE3_GPIO_Port, FORCE_SENSE3_Pin),
     
-    // Status LEDs
-    GPIO_INIT_OUTPUT(ERROR_LED_GPIO_Port, ERROR_LED_Pin, GPIO_OUTPUT_LOW_SPEED),
-    GPIO_INIT_OUTPUT(CONN_LED_GPIO_Port, CONN_LED_Pin, GPIO_OUTPUT_LOW_SPEED),
+    // Status LED
     GPIO_INIT_OUTPUT(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, GPIO_OUTPUT_LOW_SPEED)
 };
 
@@ -42,14 +40,14 @@ ADCInitConfig_t adc_config = {
 
 ADCChannelConfig_t adc_channel_config[] = {
     {.channel=FORCE_SENSE0_ADC_CHNL,   .rank=1,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
-    {.channel=FORCE_SENSE1_ADC_CHNL,   .rank=2,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
-    {.channel=FORCE_SENSE2_ADC_CHNL,   .rank=3,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
-    {.channel=FORCE_SENSE3_ADC_CHNL,   .rank=4,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5}
+    //{.channel=FORCE_SENSE1_ADC_CHNL,   .rank=2,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
+    //{.channel=FORCE_SENSE2_ADC_CHNL,   .rank=3,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
+    //{.channel=FORCE_SENSE3_ADC_CHNL,   .rank=4,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5}
 };
 
 // Priority level currently medium -- check DMA_CCR for alt values
 dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &adc_readings,
-            sizeof(adc_readings) / sizeof(adc_readings.lv_5_v_sense), 0b01);
+            sizeof(adc_readings) / sizeof(adc_readings.force_0), 0b01);
 
 /* SPI Configuration */
 /*
@@ -101,7 +99,7 @@ void ledBlink(void);
 void canTxUpdate(void);
 extern void HardFault_Handler();
 
-//q_handle_t q_tx_can;
+q_handle_t q_tx_can;
 //q_handle_t q_rx_can;
 
 int main(void){
@@ -136,20 +134,16 @@ int main(void){
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
-    taskCreate(coolingPeriodic, 200);
-    taskCreate(heartBeatLED, 500);
-    taskCreate(carHeartbeat, 100);
+    taskCreate(ledBlink, 500);
     taskCreate(memFg, MEM_FG_TIME);
     //taskCreateBackground(canTxUpdate);
     //taskCreateBackground(canRxUpdate);
     schedStart();
 
-    taskCreate(ledBlink, 500);
-
-
     return 0;
 }
 
+/*
 void preflightChecks(void) {
     static uint8_t state;
 
@@ -181,6 +175,7 @@ void preflightChecks(void) {
             state = 255; // prevent wrap around
     }
 }
+*/
 
 void ledBlink()
 {
