@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include "bsxlite_interface.h"
+#include "can_parse.h"
 
 #ifndef _GPS_H
 #define _GPS_H
@@ -32,20 +33,35 @@ typedef struct
     vector_3d_t gyroscope;
     signed long messages_received;
     uint8_t raw_message[100];
+
     uint8_t g_speed_bytes[4];
     signed long g_speed;
+    int16_t speed_rounded;
+
     uint8_t longitude_bytes[4];
     signed long longitude;
+    int32_t lon_rounded;
+
     uint8_t latitude_bytes[4];
     signed long latitude;
+    int32_t lat_rounded;
+
     uint8_t height_bytes[4];
     signed long height;
+    int16_t height_rounded;
+
     uint8_t n_vel_bytes[4];
     signed long n_vel;
+    int16_t n_vel_rounded;
+
     uint8_t e_vel_bytes[4];
     signed long e_vel;
+    int16_t e_vel_rounded;
+
     uint8_t d_vel_bytes[4];
     signed long d_vel;
+    uint16_t d_vel_rounded;
+
     uint8_t mag_dec_bytes[2];
     signed short mag_dec;
     uint8_t fix_type;

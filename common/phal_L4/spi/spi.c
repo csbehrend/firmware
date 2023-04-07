@@ -85,7 +85,7 @@ bool PHAL_SPI_init(SPI_InitConfig_t *cfg)
 
 bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data)
 {
-    SPI1->CR1 &= ~(1 << 11);
+    // SPI1->CR1 &= ~(1 << 11);
     in_data += txlen;
     if (PHAL_SPI_busy(spi))
         return false;
@@ -101,12 +101,14 @@ bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uin
     {
         while (!(spi->periph->SR & SPI_SR_TXE))
             ;
-        if (i + 1 < txlen) {
-            uint16_t data = out_data[i + 1] << 8 | (uint16_t) out_data[i];
+        if (i + 1 < txlen)
+        {
+            uint16_t data = out_data[i + 1] << 8 | (uint16_t)out_data[i];
             spi->periph->DR = data;
             i++;
         }
-        else  {
+        else
+        {
             spi->periph->DR = out_data[i];
         }
     }

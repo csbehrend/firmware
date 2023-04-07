@@ -10,9 +10,12 @@
  */
 
 #include "bmm150.h"
+#include "main.h"
+#include "bmi088.h"
 #include "common/phal_L4/spi/spi.h"
 #include "common_defs.h"
 #include "stdbool.h"
+#include "can_parse.h"
 
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm);
 bool BMM150_readID(BMM150_Handle_t *bmm);
@@ -32,9 +35,9 @@ int16_t new_zb;
 int16_t result_value_x;
 int16_t result_value_y;
 int16_t result_value_z;
-
 int16_t main_result;
 int16_t diff;
+extern q_handle_t q_tx_can;
 
 bool BMM150_readMag(BMM150_Handle_t *bmm)
 {
@@ -75,6 +78,7 @@ bool BMM150_readMag(BMM150_Handle_t *bmm)
     // Main result (needs to be sqrt)
     main_result = (result_value_x * result_value_x) + (result_value_y * result_value_y) + (result_value_y * result_value_y);
 
+    SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
     return true;
 }
 
@@ -145,23 +149,25 @@ void BMM150_setActive(BMM150_Handle_t *bmm)
     PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00000000);
     return;
 }
-
+uint8_t testresult = -2;
 bool BMM150_readID(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
     PHAL_SPI_writeByte(bmm->spi, 0x4b, 0b00000001);
+    PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00000000);
     if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
+    {
+        // PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 1);
         return false;
+    }
+    // PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 1);
     return true;
-    // BMM150_powerOnMag(bmm);
-    // testresult = PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true);
-    // if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
-    //     return false;
-    // return true;
 }
 
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm)
 {
+    // PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
+    // PHAL_writeGPIO(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, 1);
     bmm->spi->nss_gpio_port = bmm->mag_csb_gpio_port;
     bmm->spi->nss_gpio_pin = bmm->mag_csb_pin;
 }

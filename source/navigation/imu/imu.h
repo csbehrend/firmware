@@ -15,7 +15,9 @@
 #include "bmi088.h"
 #include "bsxlite_interface.h"
 #include "common/psched/psched.h"
+#include "can_parse.h"
 #include <stdbool.h>
+#include <float.h>
 
 typedef struct {
     BMI088_Handle_t* bmi;

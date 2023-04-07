@@ -8,6 +8,7 @@
 
 /* Module Includes */
 #include "bmi088.h"
+#include "can_parse.h"
 #include "bsxlite_interface.h"
 #include "imu.h"
 #include "main.h"
@@ -37,7 +38,10 @@ GPIOInitConfig_t gpio_config[] = {
     // EEPROM
     GPIO_INIT_OUTPUT(NAV_EEPROM_CS_GPIO_PORT, NAV_EEPROM_CS_PIN, GPIO_OUTPUT_HIGH_SPEED),
     GPIO_INIT_OUTPUT(NAV_WP_GPIO_PORT, NAV_WP_PIN, GPIO_OUTPUT_HIGH_SPEED),
-};
+
+    // CAN
+    GPIO_INIT_CANRX_PA11,
+    GPIO_INIT_CANTX_PA12};
 
 /* USART Configuration */
 // M9N GPS
@@ -126,14 +130,15 @@ void sendIMUData(void);
 void collectGPSData(void);
 void collectMagData(void);
 extern void HardFault_Handler(void);
+q_handle_t q_tx_can, q_rx_can;
 
 int main(void)
 {
     // memset(spi2_tx_buffer + 8, 255, 100 - 8);
 
     /* Data Struct Initialization */
-    // qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
-    // qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
+    qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
+    qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
 
     /* HAL Initialization */
     if (0 != PHAL_configureClockRates(&clock_config))
@@ -176,14 +181,14 @@ int main(void)
     schedInit(APB1ClockRateHz);
     configureAnim(preflightAnimation, preflightChecks, 74, 1000);
 
+    taskCreateBackground(canTxUpdate);
+    taskCreateBackground(canRxUpdate);
+
     taskCreate(heartBeatLED, 500);
 
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
     taskCreate(collectMagData, 100);
-
-    // taskCreateBackground(canTxUpdate);
-    // taskCreateBackground(canRxUpdate);
 
     /* No Way Home */
     schedStart();
@@ -198,28 +203,27 @@ void preflightChecks(void)
     switch (state++)
     {
     case 0:
-        // if(!PHAL_initCAN(CAN1, false))
-        // {
-        //     HardFault_Handler();
-        // }
-        // NVIC_EnableIRQ(CAN1_RX0_IRQn);
+        if (!PHAL_initCAN(CAN1, false))
+        {
+            HardFault_Handler();
+        }
+        NVIC_EnableIRQ(CAN1_RX0_IRQn);
+        break;
+    case 2:
+        if (!BMM150_readID(&bmm_config))
+        {
+            asm("nop");
+        }
         break;
     case 1:
         if (!BMI088_init(&bmi_config))
-            HardFault_Handler();
-        if (!BMM150_readID(&bmm_config))
         {
             HardFault_Handler();
         }
         break;
-    case 100:
-        // Put accel into SPI mode
-        PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
-        break;
     case 250:
         BMI088_powerOnAccel(&bmi_config);
         break;
-
     case 500:
         if (!BMI088_initAccel(&bmi_config))
             HardFault_Handler();
@@ -229,6 +233,7 @@ void preflightChecks(void)
         {
             if (!imu_init(&imu_h))
                 HardFault_Handler();
+            initCANParse(&q_rx_can);
             registerPreflightComplete(1);
             state = 750; // prevent wrap around
         }
@@ -312,55 +317,55 @@ void collectMagData(void)
 {
     BMM150_readMag(&bmm_config);
 }
-// void canTxUpdate(void)
-// {
-//     CanMsgTypeDef_t tx_msg;
-//     if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
-//     {
-//         PHAL_txCANMessage(&tx_msg);
-//     }
-// }
+void canTxUpdate(void)
+{
+    CanMsgTypeDef_t tx_msg;
+    if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G) // Check queue for items and take if there is one
+    {
+        PHAL_txCANMessage(&tx_msg);
+    }
+}
 
-// void CAN1_RX0_IRQHandler()
-// {
-//     if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
-//         CAN1->RF0R &= !(CAN_RF0R_FOVR0);
+void CAN1_RX0_IRQHandler()
+{
+    if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
+        CAN1->RF0R &= !(CAN_RF0R_FOVR0);
 
-//     if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
-//         CAN1->RF0R &= !(CAN_RF0R_FULL0);
+    if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
+        CAN1->RF0R &= !(CAN_RF0R_FULL0);
 
-//     if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
-//     {
-//         CanMsgTypeDef_t rx;
-//         rx.Bus = CAN1;
+    if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
+    {
+        CanMsgTypeDef_t rx;
+        rx.Bus = CAN1;
 
-//         // Get either StdId or ExtId
-//         rx.IDE = CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR;
-//         if (rx.IDE)
-//         {
-//           rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
-//         }
-//         else
-//         {
-//           rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_STID_Pos;
-//         }
+        // Get either StdId or ExtId
+        rx.IDE = CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR;
+        if (rx.IDE)
+        {
+            rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
+        }
+        else
+        {
+            rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_STID_Pos;
+        }
 
-//         rx.DLC = (CAN_RDT0R_DLC & CAN1->sFIFOMailBox[0].RDTR) >> CAN_RDT0R_DLC_Pos;
+        rx.DLC = (CAN_RDT0R_DLC & CAN1->sFIFOMailBox[0].RDTR) >> CAN_RDT0R_DLC_Pos;
 
-//         rx.Data[0] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 0)  & 0xFF;
-//         rx.Data[1] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 8)  & 0xFF;
-//         rx.Data[2] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 16) & 0xFF;
-//         rx.Data[3] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 24) & 0xFF;
-//         rx.Data[4] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 0)  & 0xFF;
-//         rx.Data[5] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 8)  & 0xFF;
-//         rx.Data[6] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
-//         rx.Data[7] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
+        rx.Data[0] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 0) & 0xFF;
+        rx.Data[1] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 8) & 0xFF;
+        rx.Data[2] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 16) & 0xFF;
+        rx.Data[3] = (uint8_t)(CAN1->sFIFOMailBox[0].RDLR >> 24) & 0xFF;
+        rx.Data[4] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 0) & 0xFF;
+        rx.Data[5] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 8) & 0xFF;
+        rx.Data[6] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
+        rx.Data[7] = (uint8_t)(CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
-//         CAN1->RF0R |= (CAN_RF0R_RFOM0);
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
 
-//         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
-//     }
-// }
+        qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
+    }
+}
 
 // void main_module_bl_cmd_CALLBACK(CanParsedData_t *msg_data_a)
 // {
