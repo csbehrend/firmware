@@ -143,6 +143,41 @@ void canRxUpdate()
                 can_data.main_module_bl_cmd.data = msg_data_a->main_module_bl_cmd.data;
                 main_module_bl_cmd_CALLBACK(msg_data_a);
                 break;
+            case ID_ORION_CURRENTS_VOLTS:
+                can_data.orion_currents_volts.pack_current = (int16_t) msg_data_a->orion_currents_volts.pack_current;
+                can_data.orion_currents_volts.pack_voltage = msg_data_a->orion_currents_volts.pack_voltage;
+                can_data.orion_currents_volts.stale = 0;
+                can_data.orion_currents_volts.last_rx = sched.os_ticks;
+                break;
+            case ID_ORION_INFO:
+                can_data.orion_info.discharge_enable = msg_data_a->orion_info.discharge_enable;
+                can_data.orion_info.charge_enable = msg_data_a->orion_info.charge_enable;
+                can_data.orion_info.charger_safety = msg_data_a->orion_info.charger_safety;
+                can_data.orion_info.dtc_status = msg_data_a->orion_info.dtc_status;
+                can_data.orion_info.multi_input = msg_data_a->orion_info.multi_input;
+                can_data.orion_info.always_on = msg_data_a->orion_info.always_on;
+                can_data.orion_info.is_ready = msg_data_a->orion_info.is_ready;
+                can_data.orion_info.is_charging = msg_data_a->orion_info.is_charging;
+                can_data.orion_info.multi_input_2 = msg_data_a->orion_info.multi_input_2;
+                can_data.orion_info.multi_input_3 = msg_data_a->orion_info.multi_input_3;
+                can_data.orion_info.reserved = msg_data_a->orion_info.reserved;
+                can_data.orion_info.multi_output_2 = msg_data_a->orion_info.multi_output_2;
+                can_data.orion_info.multi_output_3 = msg_data_a->orion_info.multi_output_3;
+                can_data.orion_info.multi_output_4 = msg_data_a->orion_info.multi_output_4;
+                can_data.orion_info.multi_enable = msg_data_a->orion_info.multi_enable;
+                can_data.orion_info.multi_output_1 = msg_data_a->orion_info.multi_output_1;
+                can_data.orion_info.pack_dcl = msg_data_a->orion_info.pack_dcl;
+                can_data.orion_info.pack_ccl = msg_data_a->orion_info.pack_ccl;
+                can_data.orion_info.pack_soc = msg_data_a->orion_info.pack_soc;
+                can_data.orion_info.stale = 0;
+                can_data.orion_info.last_rx = sched.os_ticks;
+                break;
+            case ID_REAR_CONTROLLER_TEMPS:
+                can_data.rear_controller_temps.left_temp = msg_data_a->rear_controller_temps.left_temp;
+                can_data.rear_controller_temps.right_temp = msg_data_a->rear_controller_temps.right_temp;
+                can_data.rear_controller_temps.stale = 0;
+                can_data.rear_controller_temps.last_rx = sched.os_ticks;
+                break;
             case ID_FAULT_SYNC_DRIVELINE:
                 can_data.fault_sync_driveline.idx = msg_data_a->fault_sync_driveline.idx;
                 can_data.fault_sync_driveline.latched = msg_data_a->fault_sync_driveline.latched;
@@ -216,6 +251,15 @@ void canRxUpdate()
     CHECK_STALE(can_data.LWS_Standard.stale,
                 sched.os_ticks, can_data.LWS_Standard.last_rx,
                 UP_LWS_STANDARD);
+    CHECK_STALE(can_data.orion_currents_volts.stale,
+                sched.os_ticks, can_data.orion_currents_volts.last_rx,
+                UP_ORION_CURRENTS_VOLTS);
+    CHECK_STALE(can_data.orion_info.stale,
+                sched.os_ticks, can_data.orion_info.last_rx,
+                UP_ORION_INFO);
+    CHECK_STALE(can_data.rear_controller_temps.stale,
+                sched.os_ticks, can_data.rear_controller_temps.last_rx,
+                UP_REAR_CONTROLLER_TEMPS);
     /* END AUTO STALE CHECKS */
 }
 
@@ -252,17 +296,22 @@ bool initCANFilter()
     CAN1->sFilterRegister[5].FR1 = (ID_LWS_STANDARD << 3) | 4;
     CAN1->sFilterRegister[5].FR2 = (ID_MAIN_MODULE_BL_CMD << 3) | 4;
     CAN1->FA1R |= (1 << 6);    // configure bank 6
-    CAN1->sFilterRegister[6].FR1 = (ID_FAULT_SYNC_DRIVELINE << 3) | 4;
-    CAN1->sFilterRegister[6].FR2 = (ID_FAULT_SYNC_DASHBOARD << 3) | 4;
+    CAN1->sFilterRegister[6].FR1 = (ID_ORION_CURRENTS_VOLTS << 3) | 4;
+    CAN1->sFilterRegister[6].FR2 = (ID_ORION_INFO << 3) | 4;
     CAN1->FA1R |= (1 << 7);    // configure bank 7
-    CAN1->sFilterRegister[7].FR1 = (ID_FAULT_SYNC_PRECHARGE << 3) | 4;
-    CAN1->sFilterRegister[7].FR2 = (ID_FAULT_SYNC_TORQUE_VECTOR << 3) | 4;
+    CAN1->sFilterRegister[7].FR1 = (ID_REAR_CONTROLLER_TEMPS << 3) | 4;
+    CAN1->sFilterRegister[7].FR2 = (ID_FAULT_SYNC_DRIVELINE << 3) | 4;
     CAN1->FA1R |= (1 << 8);    // configure bank 8
-    CAN1->sFilterRegister[8].FR1 = (ID_FAULT_SYNC_TEST_NODE << 3) | 4;
-    CAN1->sFilterRegister[8].FR2 = (ID_SET_FAULT << 3) | 4;
+    CAN1->sFilterRegister[8].FR1 = (ID_FAULT_SYNC_DASHBOARD << 3) | 4;
+    CAN1->sFilterRegister[8].FR2 = (ID_FAULT_SYNC_PRECHARGE << 3) | 4;
     CAN1->FA1R |= (1 << 9);    // configure bank 9
-    CAN1->sFilterRegister[9].FR1 = (ID_RETURN_FAULT_CONTROL << 3) | 4;
-    CAN1->sFilterRegister[9].FR2 = (ID_DAQ_COMMAND_MAIN_MODULE << 3) | 4;
+    CAN1->sFilterRegister[9].FR1 = (ID_FAULT_SYNC_TORQUE_VECTOR << 3) | 4;
+    CAN1->sFilterRegister[9].FR2 = (ID_FAULT_SYNC_TEST_NODE << 3) | 4;
+    CAN1->FA1R |= (1 << 10);    // configure bank 10
+    CAN1->sFilterRegister[10].FR1 = (ID_SET_FAULT << 3) | 4;
+    CAN1->sFilterRegister[10].FR2 = (ID_RETURN_FAULT_CONTROL << 3) | 4;
+    CAN1->FA1R |= (1 << 11);    // configure bank 11
+    CAN1->sFilterRegister[11].FR1 = (ID_DAQ_COMMAND_MAIN_MODULE << 3) | 4;
     /* END AUTO FILTER */
     CAN1->FA1R |= (1 << 6);    // configure bank 6
     CAN1->sFilterRegister[6].FR1 = (ID_LWS_STANDARD << 21);

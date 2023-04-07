@@ -17,6 +17,7 @@
 #include "cooling.h"
 #include "main.h"
 #include <stdbool.h>
+#include "TVS.h" 
 
 #define BUZZER_DURATION_MS 2500 // EV.10.5: 1-3s
 

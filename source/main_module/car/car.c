@@ -1,4 +1,7 @@
 #include "car.h"
+#include "TVS.h"
+#include "TVS_pp.h"
+#include "bigM_v2_func.h"
 
 uint16_t mot_left_req;  // 0 - 4095 value
 uint16_t mot_right_req; // 0 - 4095 value
@@ -7,6 +10,14 @@ extern q_handle_t q_tx_can;
 uint32_t buzzer_start_tick = 0;
 volatile ADCReadings_t adc_readings;
 uint8_t prchg_set;
+
+/* TV Definitions */
+static ExtU rtU;                       /* External inputs */
+static ExtY rtY;                       /* External outputs */
+static RT_MODEL rtM_;
+static RT_MODEL *const rtMPtr = &rtM_; /* Real-time model */
+static DW rtDW;                        /* Observable states */
+static RT_MODEL *const rtM = rtMPtr;
 
 static bool checkErrorFaults();
 static bool checkFatalFaults();
@@ -19,6 +30,13 @@ bool carInit()
     PHAL_writeGPIO(BUZZER_GPIO_Port, BUZZER_Pin, 0);
     prchg_set = 0;
     mot_left_req = mot_right_req = 0;
+
+    /* Pack model data into RTM */
+    rtM->dwork = &rtDW;
+
+    /* Initialize model */
+    TVS_initialize(rtM);
+
 }
 
 void carHeartbeat()
@@ -153,18 +171,36 @@ void carPeriodic()
         // E-diff
         //eDiff(t_req, &torque_r);
         // TODO: fix steering for ediff
-        torque_r.torque_left = t_req;
-        torque_r.torque_right = t_req;
+
+        // TVS Update
+        int16_t total_torque = rtY.Tx[0] + rtY.Tx[1] + rtY.Tx[2] + rtY.Tx[3];
+        int16_t max_torque = (rtP.ABS_MAX_TORQUE[0] * rtP.MOTOR_ENABLE[0]) + (rtP.ABS_MAX_TORQUE[1] * rtP.MOTOR_ENABLE[1]) + (rtP.ABS_MAX_TORQUE[2] * rtP.MOTOR_ENABLE[2]) + (rtP.ABS_MAX_TORQUE[3] * rtP.MOTOR_ENABLE[3]);
+        int16_t num_motors = rtP.MOTOR_ENABLE[0] + rtP.MOTOR_ENABLE[1] + rtP.MOTOR_ENABLE[2] + rtP.MOTOR_ENABLE[3];
+
+        TV_pp(&rtU);
+        rt_OneStep(rtM);
 
         // check torque request (FSAE rule)
-        if(torque_r.torque_left > t_req)
+        if (((max_torque * adjusted_throttle) / (4095 * num_motors)) > total_torque)
         {
-            torque_r.torque_left = t_req;
+            torque_r.torque_left = (int16_t)(rtY.Tx[2]*(4095.0/25.0));
+            torque_r.torque_right = (int16_t)(rtY.Tx[3]*(4095.0/25.0));
         }
-        if(torque_r.torque_right > t_req)
+        else
         {
-            torque_r.torque_right = t_req;
+            torque_r.torque_left = adjusted_throttle;
+            torque_r.torque_right = adjusted_throttle;
         }
+
+        // check torque request (FSAE rule)
+        //if(torque_r.torque_left > t_req)
+        //{
+        //    torque_r.torque_left = t_req;
+        //}
+        //if(torque_r.torque_right > t_req)
+        //{
+        //    torque_r.torque_right = t_req;
+        //}
 
         // No regen :(
         // if (torque_r.torque_left < 0) torque_r.torque_left = 0;
@@ -317,4 +353,35 @@ void calibrateSteeringAngle(uint8_t *ret)
     SEND_LWS_CONFIG(q_tx_can, 0x05, 0, 0); // reset cal
     SEND_LWS_CONFIG(q_tx_can, 0x03, 0, 0); // start new
     *ret = 1;
+}
+
+void rt_OneStep(RT_MODEL *const rtM)
+{
+  static boolean_T OverrunFlag = false;
+
+  /* Disable interrupts here */
+
+  /* Check for overrun */
+  if (OverrunFlag) {
+    rtmSetErrorStatus(rtM, "Overrun");
+    return;
+  }
+
+  OverrunFlag = true;
+
+  /* Save FPU context here (if necessary) */
+  /* Re-enable timer or interrupt here */
+  /* Set model inputs here */
+
+  /* Step the model */
+  TVS_step(rtM, &rtU, &rtY);
+
+  /* Get model outputs here */
+
+  /* Indicate task complete */
+  OverrunFlag = false;
+
+  /* Disable interrupts here */
+  /* Restore FPU context here (if necessary) */
+  /* Enable interrupts here */
 }
