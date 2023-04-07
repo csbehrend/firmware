@@ -10,6 +10,7 @@
  */
 
 #include "imu.h"
+#include "SFS_pp.h"
 
 extern q_handle_t q_tx_can;
 /**
@@ -32,7 +33,7 @@ bool imu_init(IMU_Handle_t *imu_h)
 }
 
 int32_t t_us = 0;
-void imu_periodic(IMU_Handle_t *imu_h)
+void imu_periodic(IMU_Handle_t *imu_h, ExtU *rtU)
 {
     vector_3d_t accel_in, gyro_in;
     int16_t h, p, r, y;
@@ -57,6 +58,14 @@ void imu_periodic(IMU_Handle_t *imu_h)
     // SEND_ANGLE_DATA(q_tx_can, p, r, y);
     // SEND_ACCEL_DATA(q_tx_can, (int16_t) (accel_in.x * 100), (int16_t) (accel_in.y * 100), (int16_t) (accel_in.z * 100));
     // SEND_GYRO_DATA(q_tx_can, (int16_t) (gyro_in.x * 100), (int16_t) (gyro_in.y * 100), (int16_t) (gyro_in.z * 100));
+
+    rtU->gyro[0] = CLAMP(gyro_in.x*ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
+    rtU->gyro[1] = CLAMP(gyro_in.y*ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
+    rtU->gyro[2] = CLAMP(gyro_in.z*ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
+
+    rtU->acc[0] = CLAMP(accel_in.x*GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
+    rtU->acc[1] = CLAMP(accel_in.y*GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
+    rtU->acc[2] = CLAMP(accel_in.z*GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
 
     SEND_IMU_GYRO(q_tx_can, (int16_t)(gyro_in.x * 100), (int16_t)(gyro_in.y * 100), (int16_t)(gyro_in.z * 100));
     SEND_IMU_ACCEL(q_tx_can, (int16_t)(accel_in.x * 100), (int16_t)(accel_in.y * 100), (int16_t)(accel_in.z * 100));

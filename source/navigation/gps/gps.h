@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include "bsxlite_interface.h"
 #include "can_parse.h"
+#include "SFS.h"
+#include "common\common_defs\common_defs.h"
 
 #ifndef _GPS_H
 #define _GPS_H
@@ -67,6 +69,6 @@ typedef struct
     uint8_t fix_type;
 } GPS_Handle_t; // GPS handle
 
-bool parseVelocity(GPS_Handle_t *GPS);
+bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU);
 
 #endif //_GPS_H

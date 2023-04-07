@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "gps.h"
+#include "SFS_pp.h"
+#include "SFS.h"
 
 union i_Long iLong;
 union i_Short iShort;
@@ -36,7 +38,7 @@ GPS_Handle_t gps_handle = {.raw_message = {0},
                            .messages_received = -1};
 
 // Parse velocity from raw message
-bool parseVelocity(GPS_Handle_t *GPS)
+bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
 {
     // Validate the message header, class, and id
     if (((GPS->raw_message)[0] == 181) && (GPS->raw_message[1] == 98) && ((GPS->raw_message)[2] == 1) && ((GPS->raw_message)[3] == 7))
@@ -127,6 +129,14 @@ bool parseVelocity(GPS_Handle_t *GPS)
             iLong.bytes[3] = GPS->raw_message[65];
             GPS->d_vel = iLong.iLong;
             GPS->d_vel_rounded = (int16_t)((GPS->d_vel * 100) / 10000);
+
+            rtU->pos[0] = CLAMP(((double) GPS->n_vel)*VEL_CALIBRATION, MIN_POS, MAX_POS);
+            rtU->pos[1] = CLAMP(((double) GPS->e_vel)*VEL_CALIBRATION, MIN_POS, MAX_POS);
+            rtU->pos[2] = CLAMP(((double) GPS->d_vel)*VEL_CALIBRATION, MIN_POS, MAX_POS);
+
+            rtU->vel[0] = CLAMP(((double) GPS->latitude)*POS_DEG_CALIBRATION, MIN_VEL, MAX_VEL);
+            rtU->vel[1] = CLAMP(((double) GPS->longitude)*POS_DEG_CALIBRATION, MIN_VEL, MAX_VEL);
+            rtU->vel[2] = CLAMP(((double) GPS->height)*POS_H_CALIBRATION, MIN_VEL, MAX_VEL);
 
             SEND_GPS_VELOCITY(q_tx_can, GPS->n_vel_rounded, GPS->e_vel_rounded, GPS->d_vel_rounded, GPS->speed_rounded);
             SEND_GPS_COORDINATES(q_tx_can, GPS->lat_rounded, GPS->lon_rounded);

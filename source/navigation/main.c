@@ -294,7 +294,7 @@ void heartBeatLED(void)
 
 void sendIMUData(void)
 {
-    imu_periodic(&imu_h);
+    imu_periodic(&imu_h, &rtU);
 }
 
 uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
@@ -307,7 +307,7 @@ void collectGPSData(void)
     BMI088_readAccel(&bmi_config, &accel_in);
     testGPSHandle.acceleration = accel_in;
     testGPSHandle.gyroscope = gyro_in;
-    parseVelocity(&testGPSHandle);
+    parseVelocity(&testGPSHandle, &rtU);
     // PHAL_usartRxBl(USART3, (uint16_t *)collect_test, 100);
     // PHAL_usartRxDma(USART3, &huart_gps, (uint16_t *)collect_test, 100);
     // PHAL_usartTxDma(USART3, &huart_gps, (uint16_t *)poll_pvt, strlen(poll_pvt));
@@ -333,8 +333,9 @@ void collectGPSData(void)
 
 void collectMagData(void)
 {
-    BMM150_readMag(&bmm_config);
+    BMM150_readMag(&bmm_config, &rtU);
 }
+
 void canTxUpdate(void)
 {
     CanMsgTypeDef_t tx_msg;

@@ -18,6 +18,7 @@
 #include "can_parse.h"
 #include <stdbool.h>
 #include <float.h>
+#include "SFS.h"
 
 typedef struct {
     BMI088_Handle_t* bmi;
@@ -28,6 +29,6 @@ typedef struct {
 } IMU_Handle_t;
 
 bool imu_init(IMU_Handle_t* imu_h);
-void imu_periodic(IMU_Handle_t* imu_h);
+void imu_periodic(IMU_Handle_t* imu_h, ExtU* rtU);
 
 #endif

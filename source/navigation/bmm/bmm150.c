@@ -16,12 +16,13 @@
 #include "common_defs.h"
 #include "stdbool.h"
 #include "can_parse.h"
+#include "SFS_pp.h"
 
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm);
 bool BMM150_readID(BMM150_Handle_t *bmm);
 void BMM150_powerOnMag(BMM150_Handle_t *bmm);
 bool BMM150_init(BMM150_Handle_t *bmm);
-bool BMM150_readMag(BMM150_Handle_t *bmm);
+bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU);
 void BMM150_setActive(BMM150_Handle_t *bmm);
 bool BMM150_selfTest(BMM150_Handle_t *bmm);
 bool BMM150_selfTestAdvanced(BMM150_Handle_t *bmm);
@@ -39,7 +40,7 @@ int16_t main_result;
 int16_t diff;
 extern q_handle_t q_tx_can;
 
-bool BMM150_readMag(BMM150_Handle_t *bmm)
+bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
 {
     // SPI rx and tx buffers
     static uint8_t spi_rx_buff[16] = {0};
@@ -77,6 +78,10 @@ bool BMM150_readMag(BMM150_Handle_t *bmm)
 
     // Main result (needs to be sqrt)
     main_result = (result_value_x * result_value_x) + (result_value_y * result_value_y) + (result_value_y * result_value_y);
+
+    rtU->mag[0] = CLAMP(((double) result_value_x)*MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    rtU->mag[1] = CLAMP(((double) result_value_y)*MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    rtU->mag[2] = CLAMP(((double) result_value_z)*MAG_CALIBRATION, MIN_MAG, MAX_MAG);
 
     SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
     return true;
