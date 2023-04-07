@@ -196,6 +196,7 @@ extern const ConstP rtConstP;
 /* Model entry point functions */
 extern void SFS_initialize(RT_MODEL *const rtM);
 extern void SFS_step(RT_MODEL *const rtM, ExtU *rtU, ExtY *rtY);
+void SFS_MAIN(void);
 
 /*-
  * The generated code includes comments that allow you to trace directly

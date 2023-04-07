@@ -14,6 +14,9 @@
 #include "main.h"
 #include "gps.h"
 #include "bmm150.h"
+#include "SFS.h" 
+#include "SFS_pp.h"
+
 
 uint8_t collect_test[100] = {0};
 
@@ -132,6 +135,14 @@ void collectMagData(void);
 extern void HardFault_Handler(void);
 q_handle_t q_tx_can, q_rx_can;
 
+/* SFS Definitions */
+static ExtU rtU;                       /* External inputs */
+static ExtY rtY;                       /* External outputs */
+static RT_MODEL rtM_;
+static RT_MODEL *const rtMPtr = &rtM_; /* Real-time model */
+static DW rtDW;                        /* Observable states */
+static RT_MODEL *const rtM = rtMPtr;
+
 int main(void)
 {
     // memset(spi2_tx_buffer + 8, 255, 100 - 8);
@@ -189,6 +200,7 @@ int main(void)
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
     taskCreate(collectMagData, 100);
+    taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
     schedStart();
@@ -228,6 +240,12 @@ void preflightChecks(void)
         if (!BMI088_initAccel(&bmi_config))
             HardFault_Handler();
         break;
+    case 700:
+        /* Pack model data into RTM */
+        rtM->dwork = &rtDW;
+
+        /* Initialize model */
+        SFS_initialize(rtM);
     default:
         if (state > 750)
         {
@@ -372,6 +390,39 @@ void CAN1_RX0_IRQHandler()
 //     if (can_data.main_module_bl_cmd.cmd == BLCMD_RST)
 //         Bootloader_ResetForFirmwareDownload();
 // }
+
+void SFS_MAIN(void)
+{
+  SFS_pp(&rtU);
+
+  static boolean_T OverrunFlag = false;
+
+  /* Disable interrupts here */
+
+  /* Check for overrun */
+  if (OverrunFlag) {
+    rtmSetErrorStatus(rtM, "Overrun");
+    return;
+  }
+
+  OverrunFlag = true;
+
+  /* Save FPU context here (if necessary) */
+  /* Re-enable timer or interrupt here */
+  /* Set model inputs here */
+
+  /* Step the model */
+  SFS_step(rtM, &rtU, &rtY);
+
+  /* Get model outputs here */
+
+  /* Indicate task complete */
+  OverrunFlag = false;
+
+  /* Disable interrupts here */
+  /* Restore FPU context here (if necessary) */
+  /* Enable interrupts here */
+}
 
 void HardFault_Handler()
 {
