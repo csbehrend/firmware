@@ -12,7 +12,7 @@
 #include "bsxlite_interface.h"
 #include "can_parse.h"
 #include "SFS.h"
-#include "common\common_defs\common_defs.h"
+#include "common/common_defs/common_defs.h"
 
 #ifndef _GPS_H
 #define _GPS_H

@@ -26,6 +26,11 @@
 #define ID_IMU_GYRO 0xc0002f7
 #define ID_IMU_ACCEL 0xc0023b7
 #define ID_BMM_MAG 0xc0023f7
+#define ID_SFS_POS 0xc016937
+#define ID_SFS_VEL 0xc016977
+#define ID_SFS_ACC 0xc0169b7
+#define ID_SFS_ANG 0xc0169f7
+#define ID_SFS_ANG_VEL 0xc016a37
 /* END AUTO ID DEFS */
 
 // Message DLC definitions
@@ -36,6 +41,11 @@
 #define DLC_IMU_GYRO 6
 #define DLC_IMU_ACCEL 6
 #define DLC_BMM_MAG 6
+#define DLC_SFS_POS 6
+#define DLC_SFS_VEL 6
+#define DLC_SFS_ACC 6
+#define DLC_SFS_ANG 8
+#define DLC_SFS_ANG_VEL 6
 /* END AUTO DLC DEFS */
 
 // Message sending macros
@@ -89,6 +99,47 @@
         data_a->bmm_mag.bmm_mag_z = bmm_mag_z_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_SFS_POS(queue, sfs_pos_x_, sfs_pos_y_, sfs_pos_z_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SFS_POS, .DLC=DLC_SFS_POS, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->sfs_pos.sfs_pos_x = sfs_pos_x_;\
+        data_a->sfs_pos.sfs_pos_y = sfs_pos_y_;\
+        data_a->sfs_pos.sfs_pos_z = sfs_pos_z_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_SFS_VEL(queue, sfs_vel_x_, sfs_vel_y_, sfs_vel_z_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SFS_VEL, .DLC=DLC_SFS_VEL, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->sfs_vel.sfs_vel_x = sfs_vel_x_;\
+        data_a->sfs_vel.sfs_vel_y = sfs_vel_y_;\
+        data_a->sfs_vel.sfs_vel_z = sfs_vel_z_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_SFS_ACC(queue, sfs_acc_x_, sfs_acc_y_, sfs_acc_z_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SFS_ACC, .DLC=DLC_SFS_ACC, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->sfs_acc.sfs_acc_x = sfs_acc_x_;\
+        data_a->sfs_acc.sfs_acc_y = sfs_acc_y_;\
+        data_a->sfs_acc.sfs_acc_z = sfs_acc_z_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_SFS_ANG(queue, sfs_ang_a_, sfs_ang_b_, sfs_ang_c_, sfs_ang_d_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SFS_ANG, .DLC=DLC_SFS_ANG, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->sfs_ang.sfs_ang_a = sfs_ang_a_;\
+        data_a->sfs_ang.sfs_ang_b = sfs_ang_b_;\
+        data_a->sfs_ang.sfs_ang_c = sfs_ang_c_;\
+        data_a->sfs_ang.sfs_ang_d = sfs_ang_d_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_SFS_ANG_VEL(queue, sfs_ang_vel_x_, sfs_ang_vel_y_, sfs_ang_vel_z_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SFS_ANG_VEL, .DLC=DLC_SFS_ANG_VEL, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->sfs_ang_vel.sfs_ang_vel_x = sfs_ang_vel_x_;\
+        data_a->sfs_ang_vel.sfs_ang_vel_y = sfs_ang_vel_y_;\
+        data_a->sfs_ang_vel.sfs_ang_vel_z = sfs_ang_vel_z_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 /* END AUTO SEND MACROS */
 
 // Stale Checking
@@ -138,6 +189,32 @@ typedef union {
         uint64_t bmm_mag_y: 16;
         uint64_t bmm_mag_z: 16;
     } bmm_mag;
+    struct {
+        uint64_t sfs_pos_x: 16;
+        uint64_t sfs_pos_y: 16;
+        uint64_t sfs_pos_z: 16;
+    } sfs_pos;
+    struct {
+        uint64_t sfs_vel_x: 16;
+        uint64_t sfs_vel_y: 16;
+        uint64_t sfs_vel_z: 16;
+    } sfs_vel;
+    struct {
+        uint64_t sfs_acc_x: 16;
+        uint64_t sfs_acc_y: 16;
+        uint64_t sfs_acc_z: 16;
+    } sfs_acc;
+    struct {
+        uint64_t sfs_ang_a: 16;
+        uint64_t sfs_ang_b: 16;
+        uint64_t sfs_ang_c: 16;
+        uint64_t sfs_ang_d: 16;
+    } sfs_ang;
+    struct {
+        uint64_t sfs_ang_vel_x: 16;
+        uint64_t sfs_ang_vel_y: 16;
+        uint64_t sfs_ang_vel_z: 16;
+    } sfs_ang_vel;
     uint8_t raw_data[8];
 } __attribute__((packed)) CanParsedData_t;
 /* END AUTO MESSAGE STRUCTURE */

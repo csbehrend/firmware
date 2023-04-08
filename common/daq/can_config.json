@@ -548,6 +548,62 @@
                             "msg_period":40,
                             "msg_hlp":3,
                             "msg_pgn":143
+                        },
+                        {   "msg_name":"sfs_pos",
+                            "msg_desc":"position from sfs",
+                            "signals":[
+                                {"sig_name":"sfs_pos_x","type":"int16_t","unit": "m","scale": 0.01},
+                                {"sig_name":"sfs_pos_y","type":"int16_t","unit": "m","scale": 0.01},
+                                {"sig_name":"sfs_pos_z","type":"int16_t","unit": "m","scale": 0.01}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1444
+                        },
+                        {   "msg_name":"sfs_vel",
+                            "msg_desc":"velocity from sfs",
+                            "signals":[
+                                {"sig_name":"sfs_vel_x","type":"int16_t","unit": "m/s","scale": 0.01},
+                                {"sig_name":"sfs_vel_y","type":"int16_t","unit": "m/s","scale": 0.01},
+                                {"sig_name":"sfs_vel_z","type":"int16_t","unit": "m/s","scale": 0.01}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1445
+                        },
+                        {   "msg_name":"sfs_acc",
+                            "msg_desc":"acceleratoin from sfs",
+                            "signals":[
+                                {"sig_name":"sfs_acc_x","type":"int16_t","unit": "m/s^2","scale": 0.01},
+                                {"sig_name":"sfs_acc_y","type":"int16_t","unit": "m/s^2","scale": 0.01},
+                                {"sig_name":"sfs_acc_z","type":"int16_t","unit": "m/s^2","scale": 0.01}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1446
+                        },
+                         {   "msg_name":"sfs_ang",
+                            "msg_desc":"orientation from sfs",
+                            "signals":[
+                                {"sig_name":"sfs_ang_a","type":"int16_t","scale": 0.0001},
+                                {"sig_name":"sfs_ang_b","type":"int16_t","scale": 0.0001},
+                                {"sig_name":"sfs_ang_c","type":"int16_t","scale": 0.0001},
+                                {"sig_name":"sfs_ang_d","type":"int16_t","scale": 0.0001}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1447
+                        },
+                        {   "msg_name":"sfs_ang_vel",
+                            "msg_desc":"orientation vel from sfs",
+                            "signals":[
+                                {"sig_name":"sfs_ang_vel_x","type":"int16_t","scale": 0.0001},
+                                {"sig_name":"sfs_ang_vel_y","type":"int16_t","scale": 0.0001},
+                                {"sig_name":"sfs_ang_vel_z","type":"int16_t","scale": 0.0001}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1448
                         }
                     ],
                     "rx":[

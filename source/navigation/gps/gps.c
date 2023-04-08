@@ -138,6 +138,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             rtU->vel[1] = CLAMP(((double) GPS->longitude)*POS_DEG_CALIBRATION, MIN_VEL, MAX_VEL);
             rtU->vel[2] = CLAMP(((double) GPS->height)*POS_H_CALIBRATION, MIN_VEL, MAX_VEL);
 
+
             SEND_GPS_VELOCITY(q_tx_can, GPS->n_vel_rounded, GPS->e_vel_rounded, GPS->d_vel_rounded, GPS->speed_rounded);
             SEND_GPS_COORDINATES(q_tx_can, GPS->lat_rounded, GPS->lon_rounded);
             SEND_GPS_POSITION(q_tx_can, 0, 0, 0, GPS->height_rounded);

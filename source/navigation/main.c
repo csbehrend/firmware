@@ -14,9 +14,10 @@
 #include "main.h"
 #include "gps.h"
 #include "bmm150.h"
-#include "SFS.h" 
+#include "SFS.h"
 #include "SFS_pp.h"
 
+extern q_handle_t q_tx_can;
 
 uint8_t collect_test[100] = {0};
 
@@ -136,8 +137,8 @@ extern void HardFault_Handler(void);
 q_handle_t q_tx_can, q_rx_can;
 
 /* SFS Definitions */
-static ExtU rtU;                       /* External inputs */
-static ExtY rtY;                       /* External outputs */
+static ExtU rtU; /* External inputs */
+static ExtY rtY; /* External outputs */
 static RT_MODEL rtM_;
 static RT_MODEL *const rtMPtr = &rtM_; /* Real-time model */
 static DW rtDW;                        /* Observable states */
@@ -394,35 +395,45 @@ void CAN1_RX0_IRQHandler()
 
 void SFS_MAIN(void)
 {
-  SFS_pp(&rtU);
+    SFS_pp(&rtU);
 
-  static boolean_T OverrunFlag = false;
+    static boolean_T OverrunFlag = false;
 
-  /* Disable interrupts here */
+    /* Disable interrupts here */
 
-  /* Check for overrun */
-  if (OverrunFlag) {
-    rtmSetErrorStatus(rtM, "Overrun");
-    return;
-  }
+    /* Check for overrun */
+    if (OverrunFlag)
+    {
+        rtmSetErrorStatus(rtM, "Overrun");
+        return;
+    }
 
-  OverrunFlag = true;
+    OverrunFlag = true;
 
-  /* Save FPU context here (if necessary) */
-  /* Re-enable timer or interrupt here */
-  /* Set model inputs here */
+    /* Save FPU context here (if necessary) */
+    /* Re-enable timer or interrupt here */
+    /* Set model inputs here */
 
-  /* Step the model */
-  SFS_step(rtM, &rtU, &rtY);
+    /* Step the model */
+    SFS_step(rtM, &rtU, &rtY);
+    SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
+                 (int16_t)(rtY.pos_VNED[1] * 100), (int16_t)(rtY.pos_VNED[2] * 100));
+    SEND_SFS_VEL(q_tx_can, (int16_t)(rtY.vel_VNED[0] * 100),
+                 (int16_t)(rtY.vel_VNED[1] * 100), (int16_t)(rtY.vel_VNED[2] * 100));
+    SEND_SFS_ACC(q_tx_can, (int16_t)(rtY.acc_VNED[0] * 100),
+                 (int16_t)(rtY.acc_VNED[1] * 100), (int16_t)(rtY.acc_VNED[2] * 100));
+    SEND_SFS_ANG(q_tx_can, (int16_t)(rtY.ang_NED[0] * 10000),
+                 (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
+    SEND_SFS_ANG_VEL(q_tx_can, (int16_t)(rtY.angvel_VNED[0] * 10000),
+                     (int16_t)(rtY.angvel_VNED[1] * 10000), (int16_t)(rtY.angvel_VNED[2] * 10000));
+    /* Get model outputs here */
 
-  /* Get model outputs here */
+    /* Indicate task complete */
+    OverrunFlag = false;
 
-  /* Indicate task complete */
-  OverrunFlag = false;
-
-  /* Disable interrupts here */
-  /* Restore FPU context here (if necessary) */
-  /* Enable interrupts here */
+    /* Disable interrupts here */
+    /* Restore FPU context here (if necessary) */
+    /* Enable interrupts here */
 }
 
 void HardFault_Handler()
