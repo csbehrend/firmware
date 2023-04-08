@@ -159,7 +159,7 @@ bool BMM150_readID(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
     PHAL_SPI_writeByte(bmm->spi, 0x4b, 0b00000001);
-    PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00000000);
+    PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00001110);
     if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
     {
         // PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 1);

@@ -200,7 +200,7 @@ int main(void)
 
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
-    taskCreate(collectMagData, 100);
+    taskCreate(collectMagData, 40);
     taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
