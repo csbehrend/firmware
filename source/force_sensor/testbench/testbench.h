@@ -94,10 +94,9 @@ typedef struct
     uint16_t force_0;
 }__attribute__((packed)) ADCReadings_t;
 
-volatile ADCReadings_t adc_readings;
 
 void forceInit(force_t *m, q_handle_t *tx_queue);
-void tiPeriodic(force_t *m);
+//void tiPeriodic(force_t *m);
 void forceSetParam(force_t *mi, ADCReadings_t *adc);
 
 #endif

@@ -16,14 +16,14 @@
 /* Module Includes */
 #include "main.h"
 #include "testbench.h"
-#include "power_monitor.h"
 
 GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(FORCE_SENSE0_GPIO_Port, FORCE_SENSE0_Pin),
+    /*
     GPIO_INIT_ANALOG(FORCE_SENSE1_GPIO_Port, FORCE_SENSE1_Pin),
     GPIO_INIT_ANALOG(FORCE_SENSE2_GPIO_Port, FORCE_SENSE2_Pin),
     GPIO_INIT_ANALOG(FORCE_SENSE3_GPIO_Port, FORCE_SENSE3_Pin),
-    
+    */
     // Status LED
     GPIO_INIT_OUTPUT(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, GPIO_OUTPUT_LOW_SPEED)
 };
@@ -45,9 +45,12 @@ ADCChannelConfig_t adc_channel_config[] = {
     //{.channel=FORCE_SENSE3_ADC_CHNL,   .rank=4,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5}
 };
 
+
+volatile ADCReadings_t force_readings;
+
 // Priority level currently medium -- check DMA_CCR for alt values
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &adc_readings,
-            sizeof(adc_readings) / sizeof(adc_readings.force_0), 0b01);
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &force_readings,
+            sizeof(force_readings) / sizeof(force_readings.force_0), 0b01);
 
 /* SPI Configuration */
 /*
@@ -128,14 +131,13 @@ int main(void){
     {
         HardFault_Handler();
     }
-    initPowerMonitor();
     PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(ADC1);
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
     taskCreate(ledBlink, 500);
-    taskCreate(memFg, MEM_FG_TIME);
+    taskCreate(memFg, MEM_FG_TIME);  // wtf is this
     //taskCreateBackground(canTxUpdate);
     //taskCreateBackground(canRxUpdate);
     schedStart();
