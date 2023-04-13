@@ -11,7 +11,7 @@
 #include "common/phal_L4/rcc/rcc.h"
 #include "common/psched/psched.h"
 #include "common/queue/queue.h"
-
+#include "common/phal_L4/usart/usart.h"
 
 /* Module Includes */
 #include "main.h"
@@ -26,6 +26,29 @@ GPIOInitConfig_t gpio_config[] = {
     */
     // Status LED
     GPIO_INIT_OUTPUT(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, GPIO_OUTPUT_LOW_SPEED)
+};
+
+/* USART Configuration */
+dma_init_t usart_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+usart_init_t huart = {
+    .baud_rate   = 115200,
+    .word_length = WORD_8,
+    .hw_flow_ctl = HW_DISABLE,
+    .mode        = MODE_TX_RX,
+    .stop_bits   = SB_ONE,
+    .parity      = PT_NONE,
+    .obsample    = OB_DISABLE,
+    .ovsample    = OV_16,
+    .adv_feature.rx_inv    = false,
+    .adv_feature.tx_inv    = false,
+    .adv_feature.auto_baud = false,
+    .adv_feature.data_inv  = false,
+    .adv_feature.msb_first = false,
+    .adv_feature.overrun   = false,
+    .adv_feature.dma_on_rx_err = false,
+    .tx_dma_cfg = &usart_tx_dma_config,
+    .rx_dma_cfg = &usart_rx_dma_config
 };
 
 /* ADC Configuration */
@@ -99,11 +122,10 @@ extern uint32_t PLLClockRateHz;
 /* Function Prototypes */
 void preflightChecks(void);
 void ledBlink(void);
-void canTxUpdate(void);
+void usartTxUpdate();
 extern void HardFault_Handler();
 
-q_handle_t q_tx_can;
-//q_handle_t q_rx_can;
+q_handle_t q_tx_usart;
 
 int main(void){
 
@@ -111,6 +133,8 @@ int main(void){
     //qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
 
     /* HAL Initialization */
+    
+
     if(0 != PHAL_configureClockRates(&clock_config))
     {
         HardFault_Handler();
@@ -134,12 +158,17 @@ int main(void){
     PHAL_startTxfer(&adc_dma_config);
     PHAL_startADC(ADC1);
 
+    huart.rx_dma_cfg->circular = true;
+    if(!PHAL_initUSART(USART1, &huart, APB1ClockRateHz))
+    {
+        HardFault_Handler();
+    }
+
     /* Task Creation */
     schedInit(APB1ClockRateHz);
     taskCreate(ledBlink, 500);
-    taskCreate(memFg, MEM_FG_TIME);  // wtf is this
-    //taskCreateBackground(canTxUpdate);
-    //taskCreateBackground(canRxUpdate);
+    taskCreateBackground(usartTxUpdate);
+
     schedStart();
 
     return 0;
@@ -152,26 +181,22 @@ void preflightChecks(void) {
     switch (state++)
     {
         case 0:
-            if(!PHAL_initCAN(CAN1, false))
+            huart_l.rx_dma_cfg->circular = true;
+            if(!PHAL_initUSART(USART_L, &huart_l, APB1ClockRateHz))
             {
                 HardFault_Handler();
             }
-            NVIC_EnableIRQ(CAN1_RX0_IRQn);
-            spi_config.data_rate = APB2ClockRateHz / 16; // 5 MHz
-            if (!PHAL_SPI_init(&spi_config))
-                HardFault_Handler();
-            if (initMem(EEPROM_nWP_GPIO_Port, EEPROM_nWP_Pin, &spi_config, 1, 1) != E_SUCCESS)
-                HardFault_Handler();
-           break;
+            huart_r.rx_dma_cfg->circular = true;
+            break;
         case 1:
             
-           break;
-       case 2:
-           //initCANParse(&q_rx_can);
-           if(daqInit(&q_tx_can))
-               HardFault_Handler();
-           initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, ID_FAULT_SYNC_MAIN_MODULE);
-           break;
+            break;
+        case 2:
+            //initCANParse(&q_rx_can);
+            if(daqInit(&q_tx_can))
+                HardFault_Handler();
+            initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, ID_FAULT_SYNC_MAIN_MODULE);
+            break;
         default:
             registerPreflightComplete(1);
             state = 255; // prevent wrap around
@@ -183,13 +208,16 @@ void ledBlink()
 {
     PHAL_toggleGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin);
 }
-/* CAN Message Handling */
-void canTxUpdate()
+
+/* USART Message Handling */
+uint8_t tmp_left[MC_MAX_TX_LENGTH] = {'\0'};
+uint8_t tmp_right[TI_MAX_TX_LENGTH] = {'\0'};
+void usartTxUpdate()
 {
-    CanMsgTypeDef_t tx_msg;
-    if (qReceive(&q_tx_can, &tx_msg) == SUCCESS_G)    // Check queue for items and take if there is one
+    if (PHAL_usartTxDmaComplete(&huart) &&
+        qReceive(&q_tx_usart, tmp_left) == SUCCESS_G)
     {
-        PHAL_txCANMessage(&tx_msg);
+        PHAL_usartTxDma(USART, &huart, (uint16_t *) tmp_left, strlen(tmp_left));
     }
 }
 

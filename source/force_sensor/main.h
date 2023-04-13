@@ -19,6 +19,9 @@
 
 #define FAULT_NODE_NAME NODE_FORCE_SENSOR
 
+
+#define USART (USART1)
+
 // Force Sensors
 
 #define FORCE_SENSE0_GPIO_Port    (GPIOB)
