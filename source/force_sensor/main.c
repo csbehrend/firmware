@@ -167,7 +167,7 @@ int main(void){
     /* Task Creation */
     schedInit(APB1ClockRateHz);
     taskCreate(ledBlink, 500);
-    taskCreateBackground(usartTxUpdate);
+    //taskCreateBackground(usartTxUpdate);
 
     schedStart();
 
@@ -210,8 +210,8 @@ void ledBlink()
 }
 
 /* USART Message Handling */
-uint8_t tmp_left[MC_MAX_TX_LENGTH] = {'\0'};
-uint8_t tmp_right[TI_MAX_TX_LENGTH] = {'\0'};
+uint8_t tmp_left[64] = {'\0'};
+uint8_t tmp_right[64] = {'\0'};
 void usartTxUpdate()
 {
     if (PHAL_usartTxDmaComplete(&huart) &&

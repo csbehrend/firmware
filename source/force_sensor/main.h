@@ -52,6 +52,6 @@
 #define CONN_LED_GPIO_Port (GPIOB)
 #define CONN_LED_Pin       (4)
 #define HEARTBEAT_LED_GPIO_Port (GPIOB)
-#define HEARTBEAT_LED_Pin       (5)
+#define HEARTBEAT_LED_Pin       (3)
 
 #endif
