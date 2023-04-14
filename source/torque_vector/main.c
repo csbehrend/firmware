@@ -8,7 +8,8 @@
 #include "common/phal_L4/gpio/gpio.h"
 #include "common/phal_L4/rcc/rcc.h"
 #include "common/bootloader/bootloader_common.h"
-
+#include "TVS.h"
+#include "TVS_pp.h"
 
 /* Module Includes */
 #include "main.h"
@@ -67,6 +68,13 @@ extern void HardFault_Handler();
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
 
+static RT_MODEL rtM_;
+static RT_MODEL *const rtMPtr = &rtM_; /* Real-time model */
+static DW rtDW;                        /* Observable states */
+static RT_MODEL *const rtM = rtMPtr;
+static ExtU rtU;                       /* External inputs */
+static ExtY rtY;                       /* External outputs */
+
 int main (void)
 {
     // Main stack pointer is saved as the first entry in the .isr_entry
@@ -75,6 +83,8 @@ int main (void)
     /* Data Struct init */
     qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
+
+    rt_init();
 
     /* HAL Initilization */
     if (0 != PHAL_configureClockRates(&clock_config))
@@ -102,6 +112,7 @@ int main (void)
     taskCreate(blinkTask, 500);
     taskCreate(bitstream10Hz, 100);
     taskCreate(bitstream100Hz, 10);
+    taskCreate(rt_OneStep, 15);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
     schedStart();
@@ -174,4 +185,44 @@ void CAN1_RX0_IRQHandler()
 
         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
     }
+}
+
+void rt_init(void)
+{
+  /* Pack model data into RTM */
+  rtM->dwork = &rtDW;
+
+  /* Initialize model */
+  TVS_initialize(rtM);
+}
+
+void rt_OneStep(void)
+{
+  static boolean_T OverrunFlag = false;
+
+  /* Disable interrupts here */
+
+  /* Check for overrun */
+  if (OverrunFlag) {
+    rtmSetErrorStatus(rtM, "Overrun");
+    return;
+  }
+
+  OverrunFlag = true;
+
+  /* Save FPU context here (if necessary) */
+  /* Re-enable timer or interrupt here */
+  /* Set model inputs here */
+
+  /* Step the model */
+  TVS_step(rtM, &rtU, &rtY);
+
+  /* Get model outputs here */
+
+  /* Indicate task complete */
+  OverrunFlag = false;
+
+  /* Disable interrupts here */
+  /* Restore FPU context here (if necessary) */
+  /* Enable interrupts here */
 }

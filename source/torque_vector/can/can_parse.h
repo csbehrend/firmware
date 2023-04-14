@@ -27,6 +27,13 @@
 #define ID_REAR_WHEEL_DATA 0x4000043
 #define ID_BITSTREAM_DATA 0x400193e
 #define ID_BITSTREAM_REQUEST 0x1000197e
+#define ID_LWS_STANDARD 0x2b0
+#define ID_RAW_THROTTLE_BRAKE 0x14000285
+#define ID_ORION_CURRENTS_VOLTS 0x140006f8
+#define ID_ORION_INFO 0x140006b8
+#define ID_REAR_CONTROLLER_TEMPS 0xc000303
+#define ID_FRONT_MOTOR_CURRENTS_TEMPS 0xc000283
+#define ID_REAR_MOTOR_CURRENTS_TEMPS 0xc0002c3
 #define ID_FAULT_SYNC_MAIN_MODULE 0x8ca01
 #define ID_FAULT_SYNC_DRIVELINE 0x8ca83
 #define ID_FAULT_SYNC_DASHBOARD 0x8cb05
@@ -45,6 +52,13 @@
 #define DLC_REAR_WHEEL_DATA 8
 #define DLC_BITSTREAM_DATA 8
 #define DLC_BITSTREAM_REQUEST 5
+#define DLC_LWS_STANDARD 5
+#define DLC_RAW_THROTTLE_BRAKE 8
+#define DLC_ORION_CURRENTS_VOLTS 4
+#define DLC_ORION_INFO 7
+#define DLC_REAR_CONTROLLER_TEMPS 2
+#define DLC_FRONT_MOTOR_CURRENTS_TEMPS 8
+#define DLC_REAR_MOTOR_CURRENTS_TEMPS 8
 #define DLC_FAULT_SYNC_MAIN_MODULE 3
 #define DLC_FAULT_SYNC_DRIVELINE 3
 #define DLC_FAULT_SYNC_DASHBOARD 3
@@ -86,6 +100,13 @@
 /* BEGIN AUTO UP DEFS (Update Period)*/
 #define UP_FRONT_WHEEL_DATA 10
 #define UP_REAR_WHEEL_DATA 10
+#define UP_LWS_STANDARD 15
+#define UP_RAW_THROTTLE_BRAKE 15
+#define UP_ORION_CURRENTS_VOLTS 32
+#define UP_ORION_INFO 32
+#define UP_REAR_CONTROLLER_TEMPS 500
+#define UP_FRONT_MOTOR_CURRENTS_TEMPS 500
+#define UP_REAR_MOTOR_CURRENTS_TEMPS 500
 /* END AUTO UP DEFS */
 
 #define CHECK_STALE(stale, curr, last, period) if(!stale && \
@@ -137,6 +158,65 @@ typedef union {
         uint64_t download_request: 1;
         uint64_t download_size: 32;
     } bitstream_request;
+    struct {
+        uint64_t LWS_ANGLE: 16;
+        uint64_t LWS_SPEED: 8;
+        uint64_t Ok: 1;
+        uint64_t Cal: 1;
+        uint64_t Trim: 1;
+        uint64_t Reserved_1: 5;
+        uint64_t Reserved_2: 8;
+    } LWS_Standard;
+    struct {
+        uint64_t throttle: 12;
+        uint64_t throttle_right: 12;
+        uint64_t brake: 12;
+        uint64_t brake_right: 12;
+        uint64_t brake_pot: 12;
+    } raw_throttle_brake;
+    struct {
+        uint64_t pack_current: 16;
+        uint64_t pack_voltage: 16;
+    } orion_currents_volts;
+    struct {
+        uint64_t discharge_enable: 1;
+        uint64_t charge_enable: 1;
+        uint64_t charger_safety: 1;
+        uint64_t dtc_status: 1;
+        uint64_t multi_input: 1;
+        uint64_t always_on: 1;
+        uint64_t is_ready: 1;
+        uint64_t is_charging: 1;
+        uint64_t multi_input_2: 1;
+        uint64_t multi_input_3: 1;
+        uint64_t reserved: 1;
+        uint64_t multi_output_2: 1;
+        uint64_t multi_output_3: 1;
+        uint64_t multi_output_4: 1;
+        uint64_t multi_enable: 1;
+        uint64_t multi_output_1: 1;
+        uint64_t pack_dcl: 16;
+        uint64_t pack_ccl: 16;
+        uint64_t pack_soc: 8;
+    } orion_info;
+    struct {
+        uint64_t left_temp: 8;
+        uint64_t right_temp: 8;
+    } rear_controller_temps;
+    struct {
+        uint64_t left_current: 16;
+        uint64_t right_current: 16;
+        uint64_t left_temp: 8;
+        uint64_t right_temp: 8;
+        uint64_t right_voltage: 16;
+    } front_motor_currents_temps;
+    struct {
+        uint64_t left_current: 16;
+        uint64_t right_current: 16;
+        uint64_t left_temp: 8;
+        uint64_t right_temp: 8;
+        uint64_t right_voltage: 16;
+    } rear_motor_currents_temps;
     struct {
         uint64_t idx: 16;
         uint64_t latched: 1;
@@ -202,6 +282,79 @@ typedef struct {
         uint8_t download_request;
         uint32_t download_size;
     } bitstream_request;
+    struct {
+        int16_t LWS_ANGLE;
+        uint8_t LWS_SPEED;
+        uint8_t Ok;
+        uint8_t Cal;
+        uint8_t Trim;
+        uint8_t Reserved_1;
+        uint8_t Reserved_2;
+        uint8_t stale;
+        uint32_t last_rx;
+    } LWS_Standard;
+    struct {
+        uint16_t throttle;
+        uint16_t throttle_right;
+        uint16_t brake;
+        uint16_t brake_right;
+        uint16_t brake_pot;
+        uint8_t stale;
+        uint32_t last_rx;
+    } raw_throttle_brake;
+    struct {
+        int16_t pack_current;
+        uint16_t pack_voltage;
+        uint8_t stale;
+        uint32_t last_rx;
+    } orion_currents_volts;
+    struct {
+        uint8_t discharge_enable;
+        uint8_t charge_enable;
+        uint8_t charger_safety;
+        uint8_t dtc_status;
+        uint8_t multi_input;
+        uint8_t always_on;
+        uint8_t is_ready;
+        uint8_t is_charging;
+        uint8_t multi_input_2;
+        uint8_t multi_input_3;
+        uint8_t reserved;
+        uint8_t multi_output_2;
+        uint8_t multi_output_3;
+        uint8_t multi_output_4;
+        uint8_t multi_enable;
+        uint8_t multi_output_1;
+        uint16_t pack_dcl;
+        uint16_t pack_ccl;
+        uint8_t pack_soc;
+        uint8_t stale;
+        uint32_t last_rx;
+    } orion_info;
+    struct {
+        uint8_t left_temp;
+        uint8_t right_temp;
+        uint8_t stale;
+        uint32_t last_rx;
+    } rear_controller_temps;
+    struct {
+        uint16_t left_current;
+        uint16_t right_current;
+        uint8_t left_temp;
+        uint8_t right_temp;
+        uint16_t right_voltage;
+        uint8_t stale;
+        uint32_t last_rx;
+    } front_motor_currents_temps;
+    struct {
+        uint16_t left_current;
+        uint16_t right_current;
+        uint8_t left_temp;
+        uint8_t right_temp;
+        uint16_t right_voltage;
+        uint8_t stale;
+        uint32_t last_rx;
+    } rear_motor_currents_temps;
     struct {
         uint16_t idx;
         uint8_t latched;
