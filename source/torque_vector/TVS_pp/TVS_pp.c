@@ -45,39 +45,12 @@ rtU->FZ[1] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 rtU->FZ[2] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 rtU->FZ[3] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 
-//rtU->angvel_VNED[0] = CLAMP(can_data.gyro_data.gx * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
-//rtU->angvel_VNED[1] = CLAMP(can_data.gyro_data.gy * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
-//rtU->angvel_VNED[2] = CLAMP(can_data.gyro_data.gz * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
-
 rtU->angvel_VNED[0] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
 rtU->angvel_VNED[1] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
 rtU->angvel_VNED[2] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
 
-//rtU->vel_VNED[0] = CLAMP((rtU->omega[2] + rtU->omega[3]) * 0.222 / 2, MIN_VEL, MAX_VEL);
 rtU->vel_VNED[0] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
 rtU->vel_VNED[1] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
 rtU->vel_VNED[2] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
-
-//rtU->ang[0] = CLAMP(can_data.angle_data.pitch * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
-//rtU->ang[1] = CLAMP(can_data.angle_data.roll * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
-//rtU->ang[2] = CLAMP(can_data.angle_data.yaw * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
-
-//rtU->accel[0] = CLAMP(can_data.accel_data.ax * ACCELERATION_CALIBRATION, MIN_ACCEL, MAX_ACCEL);
-//rtU->accel[1] = CLAMP(can_data.accel_data.ay * ACCELERATION_CALIBRATION, MIN_ACCEL, MAX_ACCEL);
-//rtU->accel[2] = CLAMP(can_data.accel_data.az * ACCELERATION_CALIBRATION, MIN_ACCEL, MAX_ACCEL);
-
-//rtU->shock_displacement[0] = CLAMP(0.0, MIN_SHOCK_D, MAX_SHOCK_D);
-//rtU->shock_displacement[1] = CLAMP(0.0, MIN_SHOCK_D, MAX_SHOCK_D);
-//rtU->shock_displacement[2] = CLAMP(can_data.rear_wheel_data.left_normal * SHOCK_CALIBRATION, MIN_SHOCK_D, MAX_SHOCK_D);
-//rtU->shock_displacement[3] = CLAMP(can_data.rear_wheel_data.right_normal * SHOCK_CALIBRATION, MIN_SHOCK_D, MAX_SHOCK_D);
-
-//rtU->shock_velocity[0] = CLAMP(0.0, MIN_SHOCK_V, MAX_SHOCK_V);
-//rtU->shock_velocity[1] = CLAMP(0.0, MIN_SHOCK_V, MAX_SHOCK_V);
-//rtU->shock_velocity[2] = CLAMP(0.0, MIN_SHOCK_V, MAX_SHOCK_V);
-//rtU->shock_velocity[3] = CLAMP(0.0, MIN_SHOCK_V, MAX_SHOCK_V);
-
-//rtU->ang[0] = CLAMP(0.0 * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
-//rtU->ang[1] = CLAMP(0.0 * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
-//rtU->ang[2] = CLAMP(0.0 * ANGLE_CALIBRATION, MIN_ANG, MAX_ANG);
 
 }

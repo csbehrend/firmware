@@ -8,13 +8,12 @@
 #include "common/phal_L4/gpio/gpio.h"
 #include "common/phal_L4/rcc/rcc.h"
 #include "common/bootloader/bootloader_common.h"
-#include "TVS.h"
-#include "TVS_pp.h"
 
 /* Module Includes */
 #include "main.h"
 #include "bitstream.h"
-
+#include "TVS.h"
+#include "TVS_pp.h"
 #include "common/faults/faults.h"
 
 /* PER HAL Initilization Structures */
@@ -198,9 +197,8 @@ void rt_init(void)
 
 void rt_OneStep(void)
 {
+  torqueRequest_t torque_r;
   static boolean_T OverrunFlag = false;
-
-  /* Disable interrupts here */
 
   /* Check for overrun */
   if (OverrunFlag) {
@@ -210,19 +208,13 @@ void rt_OneStep(void)
 
   OverrunFlag = true;
 
-  /* Save FPU context here (if necessary) */
-  /* Re-enable timer or interrupt here */
-  /* Set model inputs here */
-
   /* Step the model */
   TVS_step(rtM, &rtU, &rtY);
 
-  /* Get model outputs here */
+  torque_r.torque_left = (int16_t)(rtY.Tx[2]*(4095.0/25.0));
+  torque_r.torque_right = (int16_t)(rtY.Tx[3]*(4095.0/25.0));
+
 
   /* Indicate task complete */
   OverrunFlag = false;
-
-  /* Disable interrupts here */
-  /* Restore FPU context here (if necessary) */
-  /* Enable interrupts here */
 }

@@ -1,5 +1,7 @@
 #include "TVS.h" 
 
+void TV_pp(ExtU* rtU);
+
 // Calibration
 #define DRIVER_INPUT_CALIBRATION 1.0 / 4095.0
 #define STEERING_ANGLE_CALIBRATION 0.1
@@ -14,12 +16,6 @@
 #define FZ_CALIBRATION 1.0
 #define GYRO_CALIBRATION 1.0
 #define VEL_CALIBRATION 1.0
-
-//#define ANGLE_CALIBRATION 1.0
-//#define ROTATION_CALIBRATION 1.0
-//#define ACCELERATION_CALIBRATION 1.0
-//#define CURRENT_CALIBRATION 1.0
-//#define SHOCK_CALIBRATION 1.0 / 1000.0
 
 // Clamping
 #define MIN_THROTTLE 0.0
@@ -62,16 +58,8 @@
 #define MIN_VEL 0.0
 #define MAX_VEL 30.0
 
-//#define MIN_ACCEL -30.0
-//#define MAX_ACCEL 30.0
-
-//#define MIN_SHOCK_D 0.1
-//#define MAX_SHOCK_D 0.25
-
-//#define MIN_SHOCK_V -0.25
-//#define MAX_SHOCK_V 0.25
-
-//#define MIN_ANG -360.0
-//#define MAX_ANG 360.0
-
-void TV_pp(ExtU* rtU);
+typedef struct
+{
+    short torque_left;
+    short torque_right;
+} torqueRequest_t;
