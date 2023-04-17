@@ -58,14 +58,41 @@ void imu_periodic(IMU_Handle_t *imu_h, ExtU *rtU)
     // SEND_ANGLE_DATA(q_tx_can, p, r, y);
     // SEND_ACCEL_DATA(q_tx_can, (int16_t) (accel_in.x * 100), (int16_t) (accel_in.y * 100), (int16_t) (accel_in.z * 100));
     // SEND_GYRO_DATA(q_tx_can, (int16_t) (gyro_in.x * 100), (int16_t) (gyro_in.y * 100), (int16_t) (gyro_in.z * 100));
-
+    uint8_t gyro_oor = 0;
+    uint8_t acc_oor = 0;
+    
     rtU->gyro[0] = CLAMP(gyro_in.x * ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
     rtU->gyro[1] = CLAMP(gyro_in.y * ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
     rtU->gyro[2] = CLAMP(gyro_in.z * ACC_CALIBRATION, MIN_GYRO, MAX_GYRO);
+    if ((rtU->gyro[0] > MAX_GYRO) || (rtU->gyro[0] < MIN_GYRO) ||
+        (rtU->gyro[1] > MAX_GYRO) || (rtU->gyro[1] < MIN_GYRO) ||
+        (rtU->gyro[2] > MAX_GYRO) || (rtU->gyro[2] < MIN_GYRO))
+    {
+        gyro_oor = 1;
+    }
 
     rtU->acc[0] = CLAMP(accel_in.x * GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
     rtU->acc[1] = CLAMP(accel_in.y * GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
     rtU->acc[2] = CLAMP(accel_in.z * GYRO_CALIBRATION, MIN_ACC, MAX_ACC);
+    if ((rtU->acc[0] > MAX_ACC) || (rtU->acc[0] < MIN_ACC) ||
+        (rtU->acc[1] > MAX_ACC) || (rtU->acc[1] < MIN_ACC) ||
+        (rtU->acc[2] > MAX_ACC) || (rtU->acc[2] < MIN_ACC))
+    {
+        acc_oor = 0;
+    }
+
+    if ((gyro_oor == 1) && (acc_oor == 1))
+    {
+        SEND_IMU_OOR(q_tx_can, 1, 1);
+    }
+    else if (acc_oor == 1)
+    {
+        SEND_IMU_OOR(q_tx_can, 1, 0);
+    }
+    else if (gyro_oor == 1)
+    {
+        SEND_IMU_OOR(q_tx_can, 0, 1);
+    }
 
     SEND_IMU_GYRO(q_tx_can, (int16_t)(gyro_in.x * 100), (int16_t)(gyro_in.y * 100), (int16_t)(gyro_in.z * 100));
     SEND_IMU_ACCEL(q_tx_can, (int16_t)(accel_in.x * 100), (int16_t)(accel_in.y * 100), (int16_t)(accel_in.z * 100));

@@ -39,6 +39,7 @@ GPS_Handle_t gps_handle = {.raw_message = {0},
                            .messages_received = -1};
 
 // Parse velocity from raw message
+// FIX type fault
 bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
 {
     // Validate the message header, class, and id
@@ -46,6 +47,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
     {
         // Collect fix type
         GPS->fix_type = GPS->raw_message[26];
+        SEND_GPS_FIX(q_tx_can, GPS->fix_type);
         if (GPS->fix_type > 2)
         {
             // Collect Ground Speed
@@ -109,6 +111,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             GPS->n_vel_rounded = (int16_t)((GPS->n_vel * 100) / 10000);
             GPS->n_vel_sfs1 = (double)(GPS->n_vel);
             GPS->n_vel_sfs2 = (double)GPS->n_vel;
+
             // Collect East Velocity
             GPS->e_vel_bytes[0] = GPS->raw_message[58];
             GPS->e_vel_bytes[1] = GPS->raw_message[59];
@@ -120,6 +123,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[3] = GPS->raw_message[61];
             GPS->e_vel = iLong.iLong;
             GPS->e_vel_rounded = (int16_t)((GPS->e_vel * 100) / 10000);
+
             // Collect Down Velocity
             GPS->d_vel_bytes[0] = GPS->raw_message[62];
             GPS->d_vel_bytes[1] = GPS->raw_message[63];
@@ -132,25 +136,44 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             GPS->d_vel = iLong.iLong;
             GPS->d_vel_rounded = (int16_t)((GPS->d_vel * 100) / 10000);
 
-            rtU->vel[0] = CLAMP(((double)GPS->n_vel) * VEL_CALIBRATION, MIN_POS, MAX_POS);
-            rtU->vel[1] = CLAMP(((double)GPS->e_vel) * VEL_CALIBRATION, MIN_POS, MAX_POS);
-            rtU->vel[2] = CLAMP(((double)GPS->d_vel) * VEL_CALIBRATION, MIN_POS, MAX_POS);
+            rtU->vel[0] = CLAMP(((double)GPS->n_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+            rtU->vel[1] = CLAMP(((double)GPS->e_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+            rtU->vel[2] = CLAMP(((double)GPS->d_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
 
-            rtU->pos[0] = CLAMP(((double)GPS->latitude) * POS_DEG_CALIBRATION, MIN_VEL, MAX_VEL);
-            rtU->pos[1] = CLAMP(((double)GPS->longitude) * POS_DEG_CALIBRATION, MIN_VEL, MAX_VEL);
-            rtU->pos[2] = CLAMP(((double)GPS->height) * POS_H_CALIBRATION, MIN_VEL, MAX_VEL);
+            rtU->pos[0] = CLAMP(((double)GPS->latitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
+            rtU->pos[1] = CLAMP(((double)GPS->longitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
+            rtU->pos[2] = CLAMP(((double)GPS->height) * POS_H_CALIBRATION, MIN_POS, MAX_POS);
 
+            uint8_t vel_oor = 0;
+            uint8_t pos_oor = 0;
+            if ((rtU->vel[0] > MAX_VEL) || (rtU->vel[0] < MIN_VEL) ||
+                (rtU->vel[1] > MAX_VEL) || (rtU->vel[1] < MIN_VEL) ||
+                (rtU->vel[2] > MAX_VEL) || (rtU->vel[2] < MIN_VEL))
+            {
+                vel_oor = 1;
+            }
+
+            if ((rtU->pos[0] > MAX_POS) || (rtU->pos[0] < MIN_POS) ||
+                (rtU->pos[1] > MAX_POS) || (rtU->pos[1] < MIN_POS) ||
+                (rtU->pos[2] > MAX_POS) || (rtU->pos[2] < MIN_POS))
+            {
+                pos_oor = 1;
+            }
+
+            if ((vel_oor == 1) && (pos_oor == 1)) {
+                SEND_GPS_OOR(q_tx_can, 1, 1);
+            }
+            else if (vel_oor == 1) {
+                SEND_GPS_OOR(q_tx_can, 1, 0);
+            }
+            else if (pos_oor == 1) {
+                SEND_GPS_OOR(q_tx_can, 0, 1);
+            }
+            
             SEND_GPS_VELOCITY(q_tx_can, GPS->n_vel_rounded, GPS->e_vel_rounded, GPS->d_vel_rounded, GPS->speed_rounded);
             SEND_GPS_COORDINATES(q_tx_can, GPS->lat_rounded, GPS->lon_rounded);
             SEND_GPS_POSITION(q_tx_can, 0, 0, 0, GPS->height_rounded);
         }
-
-        // // Collect Magnetic Declination
-        // GPS->mag_dec_bytes[0] = GPS->raw_message[94];
-        // GPS->mag_dec_bytes[1] = GPS->raw_message[95];
-        // iShort.bytes[0] = GPS->raw_message[94];
-        // iShort.bytes[1] = GPS->raw_message[95];
-        // GPS->mag_dec = iShort.iShort;
     }
     return true;
 }

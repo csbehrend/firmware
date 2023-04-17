@@ -82,7 +82,13 @@ bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
     rtU->mag[0] = CLAMP(((double)result_value_x) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
     rtU->mag[1] = CLAMP(((double)result_value_y) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
     rtU->mag[2] = CLAMP(((double)result_value_z) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-
+    if ((rtU->mag[0] > MAX_MAG) || (rtU->mag[0] < MIN_MAG) ||
+        (rtU->mag[1] > MAX_MAG) || (rtU->mag[1] < MIN_MAG) ||
+        (rtU->mag[2] > MAX_MAG) || (rtU->mag[2] < MIN_MAG))
+    {
+        SEND_BMM_OOR(q_tx_can, 1);
+    }
+    // Fault but will always trigger
     SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
     return true;
 }
@@ -159,7 +165,7 @@ bool BMM150_readID(BMM150_Handle_t *bmm)
 {
     BMM150_selectMag(bmm);
     PHAL_SPI_writeByte(bmm->spi, 0x4b, 0b00000001);
-    PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00111000);
+    PHAL_SPI_writeByte(bmm->spi, BMM150_OP_MODE_ADDR, 0b00000000);
     if (PHAL_SPI_readByte(bmm->spi, BMM150_CHIP_ID_ADDR, true) != BMM150_CHIP_ID)
     {
         // PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 1);

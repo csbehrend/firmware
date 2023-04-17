@@ -533,6 +533,15 @@
                     "node_name":"Navigation",
                     "node_ssa": 55,
                     "tx":[
+                        {   "msg_name":"gps_fix",
+                            "msg_desc":"gps fix",
+                            "signals":[
+                                {"sig_name":"gps_vel_n","type":"uint8_t"}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1452
+                        },
                         {   "msg_name":"gps_velocity",
                             "msg_desc":"gps velocity",
                             "signals":[
@@ -623,7 +632,7 @@
                             "msg_pgn":1445
                         },
                         {   "msg_name":"sfs_acc",
-                            "msg_desc":"acceleratoin from sfs",
+                            "msg_desc":"acceleration from sfs",
                             "signals":[
                                 {"sig_name":"sfs_acc_x","type":"int16_t","unit": "m/s^2","scale": 0.01},
                                 {"sig_name":"sfs_acc_y","type":"int16_t","unit": "m/s^2","scale": 0.01},
@@ -655,6 +664,35 @@
                             "msg_period":40,
                             "msg_hlp":3,
                             "msg_pgn":1448
+                        },
+                        {   "msg_name":"gps_oor",
+                            "msg_desc":"oor faults for gps",
+                            "signals":[
+                                {"sig_name":"vel_oor", "sig_desc": "Velocity out of range","type":"uint8_t","length":1},
+                                {"sig_name":"pos_oor", "sig_desc": "Position out of range","type":"uint8_t","length":1}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1449
+                        },
+                        {   "msg_name":"imu_oor",
+                            "msg_desc":"oor faults for imu",
+                            "signals":[
+                                {"sig_name":"acc_oor", "sig_desc": "Acceleration out of range","type":"uint8_t","length":1},
+                                {"sig_name":"gyro_oor", "sig_desc": "Gyro out of range","type":"uint8_t","length":1}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1450
+                        },
+                        {   "msg_name":"bmm_oor",
+                            "msg_desc":"oor faults for bmm",
+                            "signals":[
+                                {"sig_name":"bmm_oor", "sig_desc": "BMM out of range","type":"uint8_t","length":1}
+                            ],
+                            "msg_period":40,
+                            "msg_hlp":3,
+                            "msg_pgn":1451
                         }
                     ],
                     "rx":[

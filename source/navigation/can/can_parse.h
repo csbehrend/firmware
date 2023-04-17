@@ -20,6 +20,7 @@
 
 // Message ID definitions
 /* BEGIN AUTO ID DEFS */
+#define ID_GPS_FIX 0xc016b37
 #define ID_GPS_VELOCITY 0xc0002b7
 #define ID_GPS_POSITION 0xc002337
 #define ID_GPS_COORDINATES 0xc002377
@@ -31,10 +32,14 @@
 #define ID_SFS_ACC 0xc0169b7
 #define ID_SFS_ANG 0xc0169f7
 #define ID_SFS_ANG_VEL 0xc016a37
+#define ID_GPS_OOR 0xc016a77
+#define ID_IMU_OOR 0xc016ab7
+#define ID_BMM_OOR 0xc016af7
 /* END AUTO ID DEFS */
 
 // Message DLC definitions
 /* BEGIN AUTO DLC DEFS */
+#define DLC_GPS_FIX 1
 #define DLC_GPS_VELOCITY 8
 #define DLC_GPS_POSITION 8
 #define DLC_GPS_COORDINATES 8
@@ -46,10 +51,19 @@
 #define DLC_SFS_ACC 6
 #define DLC_SFS_ANG 8
 #define DLC_SFS_ANG_VEL 6
+#define DLC_GPS_OOR 1
+#define DLC_IMU_OOR 1
+#define DLC_BMM_OOR 1
 /* END AUTO DLC DEFS */
 
 // Message sending macros
 /* BEGIN AUTO SEND MACROS */
+#define SEND_GPS_FIX(queue, gps_vel_n_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_GPS_FIX, .DLC=DLC_GPS_FIX, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->gps_fix.gps_vel_n = gps_vel_n_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 #define SEND_GPS_VELOCITY(queue, gps_vel_n_, gps_vel_e_, gps_vel_d_, gps_vel_total_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_GPS_VELOCITY, .DLC=DLC_GPS_VELOCITY, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
@@ -140,6 +154,26 @@
         data_a->sfs_ang_vel.sfs_ang_vel_z = sfs_ang_vel_z_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_GPS_OOR(queue, vel_oor_, pos_oor_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_GPS_OOR, .DLC=DLC_GPS_OOR, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->gps_oor.vel_oor = vel_oor_;\
+        data_a->gps_oor.pos_oor = pos_oor_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_IMU_OOR(queue, acc_oor_, gyro_oor_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_IMU_OOR, .DLC=DLC_IMU_OOR, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->imu_oor.acc_oor = acc_oor_;\
+        data_a->imu_oor.gyro_oor = gyro_oor_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_BMM_OOR(queue, bmm_oor_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_BMM_OOR, .DLC=DLC_BMM_OOR, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->bmm_oor.bmm_oor = bmm_oor_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 /* END AUTO SEND MACROS */
 
 // Stale Checking
@@ -158,6 +192,9 @@
 // Message Raw Structures
 /* BEGIN AUTO MESSAGE STRUCTURE */
 typedef union { 
+    struct {
+        uint64_t gps_vel_n: 8;
+    } gps_fix;
     struct {
         uint64_t gps_vel_n: 16;
         uint64_t gps_vel_e: 16;
@@ -215,6 +252,17 @@ typedef union {
         uint64_t sfs_ang_vel_y: 16;
         uint64_t sfs_ang_vel_z: 16;
     } sfs_ang_vel;
+    struct {
+        uint64_t vel_oor: 1;
+        uint64_t pos_oor: 1;
+    } gps_oor;
+    struct {
+        uint64_t acc_oor: 1;
+        uint64_t gyro_oor: 1;
+    } imu_oor;
+    struct {
+        uint64_t bmm_oor: 1;
+    } bmm_oor;
     uint8_t raw_data[8];
 } __attribute__((packed)) CanParsedData_t;
 /* END AUTO MESSAGE STRUCTURE */

@@ -294,6 +294,9 @@ BO_ 2348812088 orion_errors: 4 OrionBMS
  SG_ charger_safety_relay : 1|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ discharge_limit_enforce : 0|1@1+ (1,0) [0|0] "" Vector__XXX
 
+BO_ 2348903223 gps_fix: 1 Navigation
+ SG_ gps_vel_n : 0|8@1+ (1,0) [0|0] "" Vector__XXX
+
 BO_ 2348810935 gps_velocity: 8 Navigation
  SG_ gps_vel_total : 48|16@1- (0.01,0) [0|0] "m/s" Vector__XXX
  SG_ gps_vel_d : 32|16@1- (0.01,0) [0|0] "m/s" Vector__XXX
@@ -350,6 +353,17 @@ BO_ 2348902967 sfs_ang_vel: 6 Navigation
  SG_ sfs_ang_vel_z : 32|16@1- (0.0001,0) [0|0] "" Vector__XXX
  SG_ sfs_ang_vel_y : 16|16@1- (0.0001,0) [0|0] "" Vector__XXX
  SG_ sfs_ang_vel_x : 0|16@1- (0.0001,0) [0|0] "" Vector__XXX
+
+BO_ 2348903031 gps_oor: 1 Navigation
+ SG_ pos_oor : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ vel_oor : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2348903095 imu_oor: 1 Navigation
+ SG_ gyro_oor : 1|1@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ acc_oor : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2348903159 bmm_oor: 1 Navigation
+ SG_ bmm_oor : 0|1@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 2483028613 raw_throttle_brake: 8 Dashboard
  SG_ brake_pot : 48|12@1+ (0.02442,0) [0|0] "%" Vector__XXX
@@ -1045,6 +1059,8 @@ CM_ SG_ 2348812088 heatsink_thermistor "";
 CM_ SG_ 2348812088 internal_hardware "";
 CM_ SG_ 2348812088 charger_safety_relay "";
 CM_ SG_ 2348812088 discharge_limit_enforce "";
+CM_ BO_ 2348903223 "gps fix";
+CM_ SG_ 2348903223 gps_vel_n "";
 CM_ BO_ 2348810935 "gps velocity";
 CM_ SG_ 2348810935 gps_vel_total "";
 CM_ SG_ 2348810935 gps_vel_d "";
@@ -1078,7 +1094,7 @@ CM_ BO_ 2348902775 "velocity from sfs";
 CM_ SG_ 2348902775 sfs_vel_z "";
 CM_ SG_ 2348902775 sfs_vel_y "";
 CM_ SG_ 2348902775 sfs_vel_x "";
-CM_ BO_ 2348902839 "acceleratoin from sfs";
+CM_ BO_ 2348902839 "acceleration from sfs";
 CM_ SG_ 2348902839 sfs_acc_z "";
 CM_ SG_ 2348902839 sfs_acc_y "";
 CM_ SG_ 2348902839 sfs_acc_x "";
@@ -1091,6 +1107,14 @@ CM_ BO_ 2348902967 "orientation vel from sfs";
 CM_ SG_ 2348902967 sfs_ang_vel_z "";
 CM_ SG_ 2348902967 sfs_ang_vel_y "";
 CM_ SG_ 2348902967 sfs_ang_vel_x "";
+CM_ BO_ 2348903031 "oor faults for gps";
+CM_ SG_ 2348903031 pos_oor "Position out of range";
+CM_ SG_ 2348903031 vel_oor "Velocity out of range";
+CM_ BO_ 2348903095 "oor faults for imu";
+CM_ SG_ 2348903095 gyro_oor "Gyro out of range";
+CM_ SG_ 2348903095 acc_oor "Acceleration out of range";
+CM_ BO_ 2348903159 "oor faults for bmm";
+CM_ SG_ 2348903159 bmm_oor "BMM out of range";
 CM_ BO_ 2483028613 "Throttle and brake values";
 CM_ SG_ 2483028613 brake_pot "";
 CM_ SG_ 2483028613 brake_right "";
