@@ -201,7 +201,7 @@ int main(void)
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
     taskCreate(collectMagData, 40);
-    taskCreate(SFS_MAIN, 10);
+    //taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
     schedStart();
@@ -399,8 +399,6 @@ void SFS_MAIN(void)
 
     static boolean_T OverrunFlag = false;
 
-    /* Disable interrupts here */
-
     /* Check for overrun */
     if (OverrunFlag)
     {
@@ -409,10 +407,6 @@ void SFS_MAIN(void)
     }
 
     OverrunFlag = true;
-
-    /* Save FPU context here (if necessary) */
-    /* Re-enable timer or interrupt here */
-    /* Set model inputs here */
 
     /* Step the model */
     SFS_step(rtM, &rtU, &rtY);
@@ -426,7 +420,6 @@ void SFS_MAIN(void)
                  (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
     SEND_SFS_ANG_VEL(q_tx_can, (int16_t)(rtY.angvel_VNED[0] * 10000),
                      (int16_t)(rtY.angvel_VNED[1] * 10000), (int16_t)(rtY.angvel_VNED[2] * 10000));
-    /* Get model outputs here */
 
     /* Indicate task complete */
     OverrunFlag = false;

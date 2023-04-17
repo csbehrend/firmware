@@ -5,10 +5,6 @@
 
 void SFS_pp(ExtU* rtU)
 {
-
-
-
-
     if (0)
     {
         rtU->pos[0] = CLAMP(0, MIN_POS, MAX_POS);
