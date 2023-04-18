@@ -11,8 +11,9 @@
 #include <stdint.h>
 #include "bsxlite_interface.h"
 #include "can_parse.h"
-#include "SFS.h"
+#include "Sensor.h"
 #include "common/common_defs/common_defs.h"
+#include "SFS_pp.h"
 
 #ifndef _GPS_H
 #define _GPS_H

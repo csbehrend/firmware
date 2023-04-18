@@ -18,7 +18,7 @@
 #include "can_parse.h"
 #include <stdbool.h>
 #include <float.h>
-#include "SFS.h"
+#include "Sensor.h"
 
 typedef struct {
     BMI088_Handle_t* bmi;

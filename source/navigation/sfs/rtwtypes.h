@@ -5,11 +5,11 @@
  *
  * File: rtwtypes.h
  *
- * Code generated for Simulink model 'SFS'.
+ * Code generated for Simulink model 'Sensor'.
  *
- * Model version                  : 2.298
+ * Model version                  : 2.444
  * Simulink Coder version         : 9.8 (R2022b) 13-May-2022
- * C/C++ source code generated on : Tue Mar  7 19:18:20 2023
+ * C/C++ source code generated on : Tue Apr 18 00:47:29 2023
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -59,14 +59,14 @@ typedef unsigned int uint32_T;
 typedef long long int64_T;
 typedef unsigned long long uint64_T;
 typedef float real32_T;
-typedef double real64_T;
+typedef float real64_T;
 
 /*===========================================================================*
  * Generic type definitions: boolean_T, char_T, byte_T, int_T, uint_T,       *
  *                           real_T, time_T, ulong_T, ulonglong_T.           *
  *===========================================================================*/
-typedef double real_T;
-typedef double time_T;
+typedef float real_T;
+typedef float time_T;
 typedef unsigned char boolean_T;
 typedef int int_T;
 typedef unsigned int uint_T;

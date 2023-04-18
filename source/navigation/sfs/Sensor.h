@@ -3,13 +3,13 @@
  * course requirements at degree granting institutions only.  Not for
  * government, commercial, or other organizational use.
  *
- * File: SFS.h
+ * File: Sensor.h
  *
- * Code generated for Simulink model 'SFS'.
+ * Code generated for Simulink model 'Sensor'.
  *
- * Model version                  : 2.298
+ * Model version                  : 2.444
  * Simulink Coder version         : 9.8 (R2022b) 13-May-2022
- * C/C++ source code generated on : Tue Mar  7 19:18:20 2023
+ * C/C++ source code generated on : Tue Apr 18 00:47:29 2023
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -19,12 +19,12 @@
  * Validation result: Not run
  */
 
-#ifndef RTW_HEADER_SFS_h_
-#define RTW_HEADER_SFS_h_
-#ifndef SFS_COMMON_INCLUDES_
-#define SFS_COMMON_INCLUDES_
+#ifndef RTW_HEADER_Sensor_h_
+#define RTW_HEADER_Sensor_h_
+#ifndef Sensor_COMMON_INCLUDES_
+#define Sensor_COMMON_INCLUDES_
 #include "rtwtypes.h"
-#endif                                 /* SFS_COMMON_INCLUDES_ */
+#endif                                 /* Sensor_COMMON_INCLUDES_ */
 
 /* Macros for accessing real-time model data structure */
 #ifndef rtmGetErrorStatus
@@ -38,7 +38,7 @@
 /* Forward declaration for rtModel */
 typedef struct tag_RTM RT_MODEL;
 
-/* Custom Type definition for MATLAB Function: '<S2>/fusion' */
+/* Custom Type definition for MATLAB Function: '<S4>/fusion' */
 #ifndef struct_tag_Qswwf45pAGwdJmfEwBddhC
 #define struct_tag_Qswwf45pAGwdJmfEwBddhC
 
@@ -86,47 +86,50 @@ typedef struct tag_qHRwoV6ocLgXRwuZ4G6fCE insfilterAsync;
 
 #endif                                 /* typedef_insfilterAsync */
 
-/* Block signals and states (default storage) for system '<Root>/SFS' */
+/* Block signals and states (default storage) for system '<Root>' */
 typedef struct {
   insfilterAsync filter;
-  real_T UnitDelay3_DSTATE[784];       /* '<S2>/Unit Delay3' */
-  real_T UnitDelay2_DSTATE[28];        /* '<S2>/Unit Delay2' */
-  real_T val[784];
+  real_T UnitDelay3_DSTATE[784];       /* '<S4>/Unit Delay3' */
+  real_T UnitDelay2_DSTATE[28];        /* '<S4>/Unit Delay2' */
   real_T Pdot[784];
   real_T procNoise[784];
   real_T dfdx[784];
-  real_T obj[784];
+  real_T dv[784];
   real_T P_m[784];
   real_T X_c[784];
-  real_T obj_k[784];
+  real_T obj[784];
   real_T W[784];
-  real_T P_c[784];
-  real_T UnitDelay1_DSTATE;            /* '<S2>/Unit Delay1' */
-} DW_SFS;
-
-/* Block signals and states (default storage) for system '<Root>' */
-typedef struct {
-  DW_SFS SFS_ds;                       /* '<Root>/SFS' */
+  real_T P_k[784];
 } DW;
 
 /* Constant parameters (default storage) */
 typedef struct {
   /* Expression: covarience_matrix_IC
-   * Referenced by: '<S2>/Unit Delay3'
+   * Referenced by: '<S4>/Unit Delay3'
    */
   real_T UnitDelay3_InitialCondition[784];
 
   /* Expression: state_IC
-   * Referenced by: '<S2>/Unit Delay2'
+   * Referenced by: '<S4>/Unit Delay2'
    */
   real_T UnitDelay2_InitialCondition[28];
+
+  /* Computed Parameter: Constant_Value
+   * Referenced by: '<S3>/Constant'
+   */
+  int32_T Constant_Value[9];
+
+  /* Computed Parameter: Constant1_Value
+   * Referenced by: '<S3>/Constant1'
+   */
+  int32_T Constant1_Value[9];
 } ConstP;
 
 /* External inputs (root inport signals with default storage) */
 typedef struct {
   real_T mag[3];                       /* '<Root>/mag' */
   real_T gyro[3];                      /* '<Root>/gyro' */
-  real_T acc[3];                       /* '<Root>/acc' */
+  real_T acc[3];                       /* '<Root>/accel' */
   real_T pos[3];                       /* '<Root>/pos' */
   real_T vel[3];                       /* '<Root>/vel' */
 } ExtU;
@@ -146,35 +149,8 @@ typedef struct {
 
 /* Parameters (default storage) */
 struct P_ {
-  real_T covA;                         /* Variable: covA
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T covG;                         /* Variable: covG
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T covM;                         /* Variable: covM
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T covP;                         /* Variable: covP
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T covV;                         /* Variable: covV
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T fusion_t;                     /* Variable: fusion_t
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T gps_ratio;                    /* Variable: gps_ratio
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T location_lla_IC[3];           /* Variable: location_lla_IC
-                                        * Referenced by: '<S2>/fusion'
-                                        */
   real_T noise_state[28];              /* Variable: noise_state
-                                        * Referenced by: '<S2>/fusion'
-                                        */
-  real_T phi;                          /* Variable: phi
-                                        * Referenced by: '<S2>/SNED to VNED'
+                                        * Referenced by: '<S4>/fusion'
                                         */
 };
 
@@ -194,8 +170,8 @@ extern P rtP;
 extern const ConstP rtConstP;
 
 /* Model entry point functions */
-extern void SFS_initialize(RT_MODEL *const rtM);
-extern void SFS_step(RT_MODEL *const rtM, ExtU *rtU, ExtY *rtY);
+extern void Sensor_initialize(RT_MODEL *const rtM);
+extern void Sensor_step(RT_MODEL *const rtM, ExtU *rtU, ExtY *rtY);
 void SFS_MAIN(void);
 
 /*-
@@ -210,19 +186,19 @@ void SFS_MAIN(void);
  * MATLAB hilite_system command to trace the generated code back
  * to the parent model.  For example,
  *
- * hilite_system('car_model/Control Systems/SFS')    - opens subsystem car_model/Control Systems/SFS
- * hilite_system('car_model/Control Systems/SFS/Kp') - opens and selects block Kp
+ * hilite_system('car_model_FIXED/Control Systems/Sensor Fusion')    - opens subsystem car_model_FIXED/Control Systems/Sensor Fusion
+ * hilite_system('car_model_FIXED/Control Systems/Sensor Fusion/Kp') - opens and selects block Kp
  *
  * Here is the system hierarchy for this model
  *
- * '<Root>' : 'car_model/Control Systems'
- * '<S1>'   : 'car_model/Control Systems/SFS'
- * '<S2>'   : 'car_model/Control Systems/SFS/Sensor Fusion'
- * '<S3>'   : 'car_model/Control Systems/SFS/Sensor Fusion/NED2VNED'
- * '<S4>'   : 'car_model/Control Systems/SFS/Sensor Fusion/SNED to VNED'
- * '<S5>'   : 'car_model/Control Systems/SFS/Sensor Fusion/fusion'
+ * '<Root>' : 'car_model_FIXED/Control Systems'
+ * '<S1>'   : 'car_model_FIXED/Control Systems/Sensor Fusion'
+ * '<S2>'   : 'car_model_FIXED/Control Systems/Sensor Fusion/Coordinate Back Transform'
+ * '<S3>'   : 'car_model_FIXED/Control Systems/Sensor Fusion/Coordinate Transformation'
+ * '<S4>'   : 'car_model_FIXED/Control Systems/Sensor Fusion/SFS'
+ * '<S5>'   : 'car_model_FIXED/Control Systems/Sensor Fusion/SFS/fusion'
  */
-#endif                                 /* RTW_HEADER_SFS_h_ */
+#endif                                 /* RTW_HEADER_Sensor_h_ */
 
 /*
  * File trailer for generated code.

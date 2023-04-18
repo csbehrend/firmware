@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "gps.h"
-#include "SFS_pp.h"
-#include "SFS.h"
 
 union i_Long iLong;
 union i_Short iShort;

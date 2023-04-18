@@ -1,4 +1,4 @@
-#include "SFS.h" 
+#include "Sensor.h" 
 
 // calibration
 #define MAG_CALIBRATION 1.0

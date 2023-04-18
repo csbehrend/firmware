@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include "common/phal_L4/gpio/gpio.h"
 #include "common/phal_L4/spi/spi.h"
-#include "SFS.h"
+#include "Sensor.h"
 
 // Suspend mode is the default power mode of BMM150 after the chip is powered
 // The device can switch into Active mode from Sleep mode by setting OpMode bits (register 0x4C).

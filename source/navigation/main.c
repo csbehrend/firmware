@@ -14,7 +14,7 @@
 #include "main.h"
 #include "gps.h"
 #include "bmm150.h"
-#include "SFS.h"
+#include "Sensor.h"
 #include "SFS_pp.h"
 
 extern q_handle_t q_tx_can;
@@ -70,13 +70,24 @@ usart_init_t huart_gps = {
     .tx_dma_cfg = &usart_gps_tx_dma_config,
     .rx_dma_cfg = &usart_gps_rx_dma_config};
 
-#define TargetCoreClockrateHz 16000000
+// #define TargetCoreClockrateHz 16000000
+// ClockRateConfig_t clock_config = {
+//     .system_source = SYSTEM_CLOCK_SRC_HSI,
+//     .system_clock_target_hz = TargetCoreClockrateHz,
+//     .ahb_clock_target_hz = (TargetCoreClockrateHz / 1),
+//     .apb1_clock_target_hz = (TargetCoreClockrateHz / (1)),
+//     .apb2_clock_target_hz = (TargetCoreClockrateHz / (1)),
+// };
+
+#define TargetCoreClockrateHz 80000000
 ClockRateConfig_t clock_config = {
-    .system_source = SYSTEM_CLOCK_SRC_HSI,
-    .system_clock_target_hz = TargetCoreClockrateHz,
-    .ahb_clock_target_hz = (TargetCoreClockrateHz / 1),
-    .apb1_clock_target_hz = (TargetCoreClockrateHz / (1)),
-    .apb2_clock_target_hz = (TargetCoreClockrateHz / (1)),
+    .system_source              =SYSTEM_CLOCK_SRC_PLL,
+    .pll_src                    =PLL_SRC_HSI16,
+    .vco_output_rate_target_hz  =160000000,
+    .system_clock_target_hz     =TargetCoreClockrateHz,
+    .ahb_clock_target_hz        =(TargetCoreClockrateHz / 1),
+    .apb1_clock_target_hz       =(TargetCoreClockrateHz / (4)),
+    .apb2_clock_target_hz       =(TargetCoreClockrateHz / (4)),
 };
 
 /* Locals for Clock Rates */
@@ -201,7 +212,7 @@ int main(void)
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
     taskCreate(collectMagData, 40);
-    //taskCreate(SFS_MAIN, 10);
+    taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
     schedStart();
@@ -246,7 +257,7 @@ void preflightChecks(void)
         rtM->dwork = &rtDW;
 
         /* Initialize model */
-        SFS_initialize(rtM);
+        Sensor_initialize(rtM);
     default:
         if (state > 750)
         {
@@ -395,21 +406,24 @@ void CAN1_RX0_IRQHandler()
 
 void SFS_MAIN(void)
 {
-    SFS_pp(&rtU);
+    int16_T time_start;
+    static volatile int16_T time_stop;
 
-    static boolean_T OverrunFlag = false;
+    rtU.pos[0] = 40;
+    rtU.pos[1] = -86;
+    rtU.pos[2] = 200;
 
-    /* Check for overrun */
-    if (OverrunFlag)
-    {
-        rtmSetErrorStatus(rtM, "Overrun");
-        return;
-    }
-
-    OverrunFlag = true;
+    rtU.mag[0] = 20;
+    rtU.mag[1] = -2;
+    rtU.mag[2] = 50;
 
     /* Step the model */
+    time_start = sched.os_ticks;
     SFS_step(rtM, &rtU, &rtY);
+    time_stop = sched.os_ticks - time_start;
+    
+    /* Step the model */
+    Sensor_step(rtM, &rtU, &rtY);
     SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
                  (int16_t)(rtY.pos_VNED[1] * 100), (int16_t)(rtY.pos_VNED[2] * 100));
     SEND_SFS_VEL(q_tx_can, (int16_t)(rtY.vel_VNED[0] * 100),
@@ -420,13 +434,6 @@ void SFS_MAIN(void)
                  (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
     SEND_SFS_ANG_VEL(q_tx_can, (int16_t)(rtY.angvel_VNED[0] * 10000),
                      (int16_t)(rtY.angvel_VNED[1] * 10000), (int16_t)(rtY.angvel_VNED[2] * 10000));
-
-    /* Indicate task complete */
-    OverrunFlag = false;
-
-    /* Disable interrupts here */
-    /* Restore FPU context here (if necessary) */
-    /* Enable interrupts here */
 }
 
 void HardFault_Handler()

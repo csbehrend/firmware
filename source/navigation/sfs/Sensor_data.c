@@ -3,13 +3,13 @@
  * course requirements at degree granting institutions only.  Not for
  * government, commercial, or other organizational use.
  *
- * File: SFS_data.c
+ * File: Sensor_data.c
  *
- * Code generated for Simulink model 'SFS'.
+ * Code generated for Simulink model 'Sensor'.
  *
- * Model version                  : 2.298
+ * Model version                  : 2.444
  * Simulink Coder version         : 9.8 (R2022b) 13-May-2022
- * C/C++ source code generated on : Tue Mar  7 19:18:20 2023
+ * C/C++ source code generated on : Tue Apr 18 00:47:29 2023
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -19,67 +19,22 @@
  * Validation result: Not run
  */
 
-#include "SFS.h"
+#include "Sensor.h"
 
 /* Block parameters (default storage) */
 P rtP = {
-  /* Variable: covA
-   * Referenced by: '<S2>/fusion'
-   */
-  4.0095,
-
-  /* Variable: covG
-   * Referenced by: '<S2>/fusion'
-   */
-  0.018,
-
-  /* Variable: covM
-   * Referenced by: '<S2>/fusion'
-   */
-  0.99,
-
-  /* Variable: covP
-   * Referenced by: '<S2>/fusion'
-   */
-  1.0,
-
-  /* Variable: covV
-   * Referenced by: '<S2>/fusion'
-   */
-  0.1747,
-
-  /* Variable: fusion_t
-   * Referenced by: '<S2>/fusion'
-   */
-  0.01,
-
-  /* Variable: gps_ratio
-   * Referenced by: '<S2>/fusion'
-   */
-  1.0,
-
-  /* Variable: location_lla_IC
-   * Referenced by: '<S2>/fusion'
-   */
-  { 40.437675, -86.94375, 680.0 },
-
   /* Variable: noise_state
-   * Referenced by: '<S2>/fusion'
+   * Referenced by: '<S4>/fusion'
    */
   { 1.0E-6, 1.0E-6, 1.0E-6, 1.0E-6, 0.005, 0.005, 0.005, 1.0E-6, 1.0E-6, 1.0E-6,
     1.0E-6, 1.0E-6, 1.0E-6, 50.0, 50.0, 50.0, 1.0E-10, 1.0E-10, 1.0E-10, 0.0001,
-    0.0001, 0.0001, 1.0E-6, 1.0E-6, 1.0E-6, 0.1, 0.1, 0.1 },
-
-  /* Variable: phi
-   * Referenced by: '<S2>/SNED to VNED'
-   */
-  45.0
+    0.0001, 0.0001, 1.0E-6, 1.0E-6, 1.0E-6, 0.1, 0.1, 0.1 }
 };
 
 /* Constant parameters (default storage) */
 const ConstP rtConstP = {
   /* Expression: covarience_matrix_IC
-   * Referenced by: '<S2>/Unit Delay3'
+   * Referenced by: '<S4>/Unit Delay3'
    */
   { 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.001,
@@ -136,11 +91,21 @@ const ConstP rtConstP = {
     0.0, 0.0, 0.0, 0.001 },
 
   /* Expression: state_IC
-   * Referenced by: '<S2>/Unit Delay2'
+   * Referenced by: '<S4>/Unit Delay2'
    */
   { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 19.78899, -1.607, 48.9449, 0.0, 0.0, 0.0
-  }
+  },
+
+  /* Computed Parameter: Constant_Value
+   * Referenced by: '<S3>/Constant'
+   */
+  { -759250125, 0, -759250125, 0, 1073741824, 0, 759250125, 0, -759250125 },
+
+  /* Computed Parameter: Constant1_Value
+   * Referenced by: '<S3>/Constant1'
+   */
+  { -1518500250, 0, 1518500250, 0, MIN_int32_T, 0, 1518500250, 0, 1518500250 }
 };
 
 /*
