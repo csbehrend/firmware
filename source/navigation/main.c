@@ -201,12 +201,19 @@ int main(void)
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
     taskCreate(collectMagData, 100);
-    //taskCreate(SFS_MAIN, 10);
+    taskCreate(send_latency,15);
+    // taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
     schedStart();
 
     return 0;
+}
+
+void send_latency(void)
+{
+    // SEND CAN MESSAGE
+    SEND_LATENCY_NAV(q_tx_can, sched.os_ticks);
 }
 
 void preflightChecks(void)

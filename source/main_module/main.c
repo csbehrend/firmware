@@ -280,6 +280,8 @@ int main(void){
     return 0;
 }
 
+
+
 void preflightChecks(void) {
     static uint8_t state;
 

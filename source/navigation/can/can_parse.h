@@ -20,6 +20,7 @@
 
 // Message ID definitions
 /* BEGIN AUTO ID DEFS */
+#define ID_LATENCY_NAV 0xc0e3437
 #define ID_GPS_FIX 0xc016b37
 #define ID_GPS_VELOCITY 0xc0002b7
 #define ID_GPS_POSITION 0xc002337
@@ -35,10 +36,12 @@
 #define ID_GPS_OOR 0xc016a77
 #define ID_IMU_OOR 0xc016ab7
 #define ID_BMM_OOR 0xc016af7
+#define ID_LATENCY_MAIN 0xc823541
 /* END AUTO ID DEFS */
 
 // Message DLC definitions
 /* BEGIN AUTO DLC DEFS */
+#define DLC_LATENCY_NAV 4
 #define DLC_GPS_FIX 1
 #define DLC_GPS_VELOCITY 8
 #define DLC_GPS_POSITION 8
@@ -54,10 +57,17 @@
 #define DLC_GPS_OOR 1
 #define DLC_IMU_OOR 1
 #define DLC_BMM_OOR 1
+#define DLC_LATENCY_MAIN 4
 /* END AUTO DLC DEFS */
 
 // Message sending macros
 /* BEGIN AUTO SEND MACROS */
+#define SEND_LATENCY_NAV(queue, latency_nav_out_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_LATENCY_NAV, .DLC=DLC_LATENCY_NAV, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->latency_nav.latency_nav_out = latency_nav_out_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 #define SEND_GPS_FIX(queue, gps_vel_n_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_GPS_FIX, .DLC=DLC_GPS_FIX, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
@@ -179,6 +189,7 @@
 // Stale Checking
 #define STALE_THRESH 3 / 2 // 3 / 2 would be 150% of period
 /* BEGIN AUTO UP DEFS (Update Period)*/
+#define UP_LATENCY_MAIN 15
 /* END AUTO UP DEFS */
 
 #define CHECK_STALE(stale, curr, last, period) \
@@ -192,6 +203,9 @@
 // Message Raw Structures
 /* BEGIN AUTO MESSAGE STRUCTURE */
 typedef union { 
+    struct {
+        uint64_t latency_nav_out: 32;
+    } latency_nav;
     struct {
         uint64_t gps_vel_n: 8;
     } gps_fix;
@@ -263,6 +277,9 @@ typedef union {
     struct {
         uint64_t bmm_oor: 1;
     } bmm_oor;
+    struct {
+        uint64_t latency_main_out: 32;
+    } latency_main;
     uint8_t raw_data[8];
 } __attribute__((packed)) CanParsedData_t;
 /* END AUTO MESSAGE STRUCTURE */
@@ -271,6 +288,11 @@ typedef union {
 // type for each variable matches that defined in JSON
 /* BEGIN AUTO CAN DATA STRUCTURE */
 typedef struct {
+    struct {
+        uint32_t latency_main_out;
+        uint8_t stale;
+        uint32_t last_rx;
+    } latency_main;
 } can_data_t;
 /* END AUTO CAN DATA STRUCTURE */
 

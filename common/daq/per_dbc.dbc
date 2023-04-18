@@ -115,6 +115,9 @@ BO_ 2348811009 rear_controller_temps: 2 Main_Module
  SG_ right_temp : 8|8@1+ (1,0) [0|0] "C" Vector__XXX
  SG_ left_temp : 0|8@1+ (1,0) [0|0] "C" Vector__XXX
 
+BO_ 2357343553 latency_main: 4 Main_Module
+ SG_ latency_main_out : 0|32@1+ (1,0) [0|0] "" Vector__XXX
+
 BO_ 2148059649 fault_sync_main_module: 3 Main_Module
  SG_ latched : 16|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ idx : 0|16@1+ (1,0) [0|0] "" Vector__XXX
@@ -293,6 +296,9 @@ BO_ 2348812088 orion_errors: 4 OrionBMS
  SG_ internal_hardware : 2|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ charger_safety_relay : 1|1@1+ (1,0) [0|0] "" Vector__XXX
  SG_ discharge_limit_enforce : 0|1@1+ (1,0) [0|0] "" Vector__XXX
+
+BO_ 2349741111 latency_nav: 4 Navigation
+ SG_ latency_nav_out : 0|32@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 2348903223 gps_fix: 1 Navigation
  SG_ gps_vel_n : 0|8@1+ (1,0) [0|0] "" Vector__XXX
@@ -907,6 +913,8 @@ CM_ SG_ 2348810945 left_current "";
 CM_ BO_ 2348811009 "Temperature of motor controllers";
 CM_ SG_ 2348811009 right_temp "";
 CM_ SG_ 2348811009 left_temp "";
+CM_ BO_ 2357343553 "main latency check message";
+CM_ SG_ 2357343553 latency_main_out "";
 CM_ BO_ 2148059649 "Fault status message";
 CM_ SG_ 2148059649 latched "";
 CM_ SG_ 2148059649 idx "";
@@ -1059,6 +1067,8 @@ CM_ SG_ 2348812088 heatsink_thermistor "";
 CM_ SG_ 2348812088 internal_hardware "";
 CM_ SG_ 2348812088 charger_safety_relay "";
 CM_ SG_ 2348812088 discharge_limit_enforce "";
+CM_ BO_ 2349741111 "nav latency check message";
+CM_ SG_ 2349741111 latency_nav_out "";
 CM_ BO_ 2348903223 "gps fix";
 CM_ SG_ 2348903223 gps_vel_n "";
 CM_ BO_ 2348810935 "gps velocity";

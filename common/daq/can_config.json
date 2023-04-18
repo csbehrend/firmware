@@ -182,6 +182,16 @@
                             "msg_period": 500,
                             "msg_hlp": 3,
                             "msg_pgn": 12
+                        },
+                        {
+                            "msg_name": "latency_main",
+                            "msg_desc": "main latency check message",
+                            "signals": [
+                                {"sig_name": "latency_main_out", "type":"uint32_t"}
+                            ],
+                            "msg_period": 15,
+                            "msg_hlp": 3,
+                            "msg_pgn": 133333
                         }
                     ],
                     "rx":[
@@ -191,7 +201,8 @@
                         {"msg_name": "dashboard_hb"},
                         {"msg_name": "max_cell_temp"},
                         {"msg_name": "LWS_Standard"},
-                        {"msg_name": "main_module_bl_cmd" , "callback": true}
+                        {"msg_name": "main_module_bl_cmd" , "callback": true},
+                        {"msg_name": "latency_nav"}
                     ]
                 },
                 {
@@ -533,6 +544,15 @@
                     "node_name":"Navigation",
                     "node_ssa": 55,
                     "tx":[
+                        {   "msg_name":"latency_nav",
+                            "msg_desc":"nav latency check message",
+                            "signals":[
+                                {"sig_name":"latency_nav_out","type":"uint32_t"}
+                            ],
+                            "msg_period":15,
+                            "msg_hlp":3,
+                            "msg_pgn":14544
+                        },
                         {   "msg_name":"gps_fix",
                             "msg_desc":"gps fix",
                             "signals":[
@@ -696,7 +716,7 @@
                         }
                     ],
                     "rx":[
-                      
+                       {"msg_name": "latency_main"}
                     ]
                 },
                 {

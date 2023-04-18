@@ -35,6 +35,11 @@ void canRxUpdate()
         /* BEGIN AUTO CASES */
         switch(msg_header.ExtId)
         {
+            case ID_LATENCY_MAIN:
+                can_data.latency_main.latency_main_out = msg_data_a->latency_main.latency_main_out;
+                can_data.latency_main.stale = 0;
+                can_data.latency_main.last_rx = sched.os_ticks;
+                break;
             default:
                 __asm__("nop");
         }
@@ -42,6 +47,9 @@ void canRxUpdate()
     }
 
     /* BEGIN AUTO STALE CHECKS */
+    CHECK_STALE(can_data.latency_main.stale,
+                sched.os_ticks, can_data.latency_main.last_rx,
+                UP_LATENCY_MAIN);
     /* END AUTO STALE CHECKS */
 }
 
@@ -59,6 +67,8 @@ bool initCANFilter()
     CAN1->FS1R |= 0x07FFFFFF;   // Set banks 0-27 to 32-bit scale
 
     /* BEGIN AUTO FILTER */
+    CAN1->FA1R |= (1 << 0);    // configure bank 0
+    CAN1->sFilterRegister[0].FR1 = (ID_LATENCY_MAIN << 3) | 4;
     /* END AUTO FILTER */
 
     CAN1->FMR &= ~CAN_FMR_FINIT; // Enable Filters (exit filter init mode)

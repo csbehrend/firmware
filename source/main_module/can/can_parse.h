@@ -33,6 +33,7 @@
 #define ID_REAR_MC_STATUS 0x4001941
 #define ID_REAR_MOTOR_CURRENTS_TEMPS 0xc0002c1
 #define ID_REAR_CONTROLLER_TEMPS 0xc000301
+#define ID_LATENCY_MAIN 0xc823541
 #define ID_FAULT_SYNC_MAIN_MODULE 0x8ca01
 #define ID_DAQ_RESPONSE_MAIN_MODULE 0x17ffffc1
 #define ID_RAW_THROTTLE_BRAKE 0x14000285
@@ -42,6 +43,7 @@
 #define ID_MAX_CELL_TEMP 0x404e604
 #define ID_LWS_STANDARD 0x2b0
 #define ID_MAIN_MODULE_BL_CMD 0x409c43e
+#define ID_LATENCY_NAV 0xc0e3437
 #define ID_FAULT_SYNC_DRIVELINE 0x8ca83
 #define ID_FAULT_SYNC_DASHBOARD 0x8cb05
 #define ID_FAULT_SYNC_PRECHARGE 0x8cac4
@@ -67,6 +69,7 @@
 #define DLC_REAR_MC_STATUS 6
 #define DLC_REAR_MOTOR_CURRENTS_TEMPS 8
 #define DLC_REAR_CONTROLLER_TEMPS 2
+#define DLC_LATENCY_MAIN 4
 #define DLC_FAULT_SYNC_MAIN_MODULE 3
 #define DLC_DAQ_RESPONSE_MAIN_MODULE 8
 #define DLC_RAW_THROTTLE_BRAKE 8
@@ -76,6 +79,7 @@
 #define DLC_MAX_CELL_TEMP 2
 #define DLC_LWS_STANDARD 5
 #define DLC_MAIN_MODULE_BL_CMD 5
+#define DLC_LATENCY_NAV 4
 #define DLC_FAULT_SYNC_DRIVELINE 3
 #define DLC_FAULT_SYNC_DASHBOARD 3
 #define DLC_FAULT_SYNC_PRECHARGE 3
@@ -206,6 +210,12 @@
         data_a->rear_controller_temps.right_temp = right_temp_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_LATENCY_MAIN(queue, latency_main_out_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_LATENCY_MAIN, .DLC=DLC_LATENCY_MAIN, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->latency_main.latency_main_out = latency_main_out_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 #define SEND_FAULT_SYNC_MAIN_MODULE(queue, idx_, latched_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_FAULT_SYNC_MAIN_MODULE, .DLC=DLC_FAULT_SYNC_MAIN_MODULE, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
@@ -229,6 +239,7 @@
 #define UP_DASHBOARD_HB 100
 #define UP_MAX_CELL_TEMP 500
 #define UP_LWS_STANDARD 15
+#define UP_LATENCY_NAV 15
 /* END AUTO UP DEFS */
 
 #define CHECK_STALE(stale, curr, last, period) if(!stale && \
@@ -377,6 +388,9 @@ typedef union {
         uint64_t right_temp: 8;
     } rear_controller_temps;
     struct {
+        uint64_t latency_main_out: 32;
+    } latency_main;
+    struct {
         uint64_t idx: 16;
         uint64_t latched: 1;
     } fault_sync_main_module;
@@ -418,6 +432,9 @@ typedef union {
         uint64_t cmd: 8;
         uint64_t data: 32;
     } main_module_bl_cmd;
+    struct {
+        uint64_t latency_nav_out: 32;
+    } latency_nav;
     struct {
         uint64_t idx: 16;
         uint64_t latched: 1;
@@ -501,6 +518,11 @@ typedef struct {
         uint8_t cmd;
         uint32_t data;
     } main_module_bl_cmd;
+    struct {
+        uint32_t latency_nav_out;
+        uint8_t stale;
+        uint32_t last_rx;
+    } latency_nav;
     struct {
         uint16_t idx;
         uint8_t latched;
