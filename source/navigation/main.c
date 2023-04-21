@@ -419,11 +419,10 @@ void SFS_MAIN(void)
 
     /* Step the model */
     time_start = sched.os_ticks;
-    SFS_step(rtM, &rtU, &rtY);
+    Sensor_step(rtM, &rtU, &rtY);
     time_stop = sched.os_ticks - time_start;
     
     /* Step the model */
-    Sensor_step(rtM, &rtU, &rtY);
     SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
                  (int16_t)(rtY.pos_VNED[1] * 100), (int16_t)(rtY.pos_VNED[2] * 100));
     SEND_SFS_VEL(q_tx_can, (int16_t)(rtY.vel_VNED[0] * 100),
