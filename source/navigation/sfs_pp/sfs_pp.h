@@ -1,4 +1,4 @@
-#include "Sensor.h" 
+#include "SFS.h"
 
 // calibration
 #define MAG_CALIBRATION 1.0
@@ -24,4 +24,4 @@
 #define MIN_VEL -30.0
 #define MAX_VEL 30.0
 
-void SFS_pp(ExtU* rtU);
+void SFS_pp(ExtU *rtU);

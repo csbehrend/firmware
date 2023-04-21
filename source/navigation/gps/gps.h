@@ -11,9 +11,8 @@
 #include <stdint.h>
 #include "bsxlite_interface.h"
 #include "can_parse.h"
-#include "Sensor.h"
+#include "SFS.h"
 #include "common/common_defs/common_defs.h"
-#include "SFS_pp.h"
 
 #ifndef _GPS_H
 #define _GPS_H
@@ -57,13 +56,17 @@ typedef struct
     signed long n_vel;
     int16_t n_vel_rounded;
 
+    double n_vel_sfs1;
+    double n_vel_sfs2;
+    double n_hi;
+
     uint8_t e_vel_bytes[4];
     signed long e_vel;
     int16_t e_vel_rounded;
 
     uint8_t d_vel_bytes[4];
     signed long d_vel;
-    uint16_t d_vel_rounded;
+    int16_t d_vel_rounded;
 
     uint8_t mag_dec_bytes[2];
     signed short mag_dec;
