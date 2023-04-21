@@ -61,14 +61,16 @@ bool PHAL_SPI_init(SPI_InitConfig_t *handle);
  */
 bool PHAL_SPI_transfer(SPI_InitConfig_t *spi, const uint8_t *out_data, const uint32_t data_len, const uint8_t *in_data);
 
-/**
- * @brief Check for current SPI transaction to complete
- * @param cfg Spi config
- *
- * @return true
- * @return false
- */
-bool PHAL_SPI_busy(SPI_InitConfig_t *cfg);
+bool PHAL_SPI_transfer_noDMA(SPI_InitConfig_t *spi, const uint8_t *out_data, uint32_t txlen, uint32_t rxlen, uint8_t *in_data);
+
+    /**
+     * @brief Check for current SPI transaction to complete
+     * @param cfg Spi config
+     *
+     * @return true
+     * @return false
+     */
+    bool PHAL_SPI_busy(SPI_InitConfig_t *cfg);
 
 /**
  * @brief Blocking function to write a single byte to a SPI device.

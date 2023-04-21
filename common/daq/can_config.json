@@ -187,7 +187,8 @@
                             "msg_name": "latency_main",
                             "msg_desc": "main latency check message",
                             "signals": [
-                                {"sig_name": "latency_main_out", "type":"uint32_t"}
+                                {"sig_name": "latency_start", "type":"uint32_t"},
+                                {"sig_name": "latency_receive", "type":"uint32_t"}
                             ],
                             "msg_period": 15,
                             "msg_hlp": 3,
@@ -202,7 +203,7 @@
                         {"msg_name": "max_cell_temp"},
                         {"msg_name": "LWS_Standard"},
                         {"msg_name": "main_module_bl_cmd" , "callback": true},
-                        {"msg_name": "latency_nav"}
+                        {"msg_name": "latency_nav", "callback": true}
                     ]
                 },
                 {

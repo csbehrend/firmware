@@ -79,17 +79,17 @@ bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
     // Main result (needs to be sqrt)
     main_result = (result_value_x * result_value_x) + (result_value_y * result_value_y) + (result_value_y * result_value_y);
 
-    rtU->mag[0] = CLAMP(((double)result_value_x) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-    rtU->mag[1] = CLAMP(((double)result_value_y) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-    rtU->mag[2] = CLAMP(((double)result_value_z) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-    if ((rtU->mag[0] > MAX_MAG) || (rtU->mag[0] < MIN_MAG) ||
-        (rtU->mag[1] > MAX_MAG) || (rtU->mag[1] < MIN_MAG) ||
-        (rtU->mag[2] > MAX_MAG) || (rtU->mag[2] < MIN_MAG))
-    {
-        SEND_BMM_OOR(q_tx_can, 1);
-    }
+    // rtU->mag[0] = CLAMP(((double)result_value_x) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    // rtU->mag[1] = CLAMP(((double)result_value_y) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    // rtU->mag[2] = CLAMP(((double)result_value_z) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    // if ((rtU->mag[0] > MAX_MAG) || (rtU->mag[0] < MIN_MAG) ||
+    //     (rtU->mag[1] > MAX_MAG) || (rtU->mag[1] < MIN_MAG) ||
+    //     (rtU->mag[2] > MAX_MAG) || (rtU->mag[2] < MIN_MAG))
+    // {
+    //     SEND_BMM_OOR(q_tx_can, 1);
+    // }
     // Fault but will always trigger
-    SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
+    // SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
     return true;
 }
 

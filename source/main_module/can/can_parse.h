@@ -69,7 +69,7 @@
 #define DLC_REAR_MC_STATUS 6
 #define DLC_REAR_MOTOR_CURRENTS_TEMPS 8
 #define DLC_REAR_CONTROLLER_TEMPS 2
-#define DLC_LATENCY_MAIN 4
+#define DLC_LATENCY_MAIN 8
 #define DLC_FAULT_SYNC_MAIN_MODULE 3
 #define DLC_DAQ_RESPONSE_MAIN_MODULE 8
 #define DLC_RAW_THROTTLE_BRAKE 8
@@ -210,10 +210,11 @@
         data_a->rear_controller_temps.right_temp = right_temp_;\
         qSendToBack(&queue, &msg);\
     } while(0)
-#define SEND_LATENCY_MAIN(queue, latency_main_out_) do {\
+#define SEND_LATENCY_MAIN(queue, latency_start_, latency_receive_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_LATENCY_MAIN, .DLC=DLC_LATENCY_MAIN, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
-        data_a->latency_main.latency_main_out = latency_main_out_;\
+        data_a->latency_main.latency_start = latency_start_;\
+        data_a->latency_main.latency_receive = latency_receive_;\
         qSendToBack(&queue, &msg);\
     } while(0)
 #define SEND_FAULT_SYNC_MAIN_MODULE(queue, idx_, latched_) do {\
@@ -388,7 +389,8 @@ typedef union {
         uint64_t right_temp: 8;
     } rear_controller_temps;
     struct {
-        uint64_t latency_main_out: 32;
+        uint64_t latency_start: 32;
+        uint64_t latency_receive: 32;
     } latency_main;
     struct {
         uint64_t idx: 16;
@@ -562,6 +564,7 @@ extern volatile uint32_t last_can_rx_time_ms;
 /* BEGIN AUTO EXTERN CALLBACK */
 extern void daq_command_MAIN_MODULE_CALLBACK(CanMsgTypeDef_t* msg_header_a);
 extern void main_module_bl_cmd_CALLBACK(CanParsedData_t* msg_data_a);
+extern void latency_nav_CALLBACK(CanParsedData_t* msg_data_a);
 extern void handleCallbacks(uint16_t id, bool latched);
 extern void set_fault_daq(uint16_t id, bool value);
 extern void return_fault_control(uint16_t id);

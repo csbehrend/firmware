@@ -134,6 +134,7 @@ void sendIMUData(void);
 void collectGPSData(void);
 void collectMagData(void);
 extern void HardFault_Handler(void);
+void SFS_MAIN(void);
 q_handle_t q_tx_can, q_rx_can;
 
 /* SFS Definitions */
@@ -200,9 +201,9 @@ int main(void)
 
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
-    taskCreate(collectMagData, 100);
-    taskCreate(send_latency,15);
-    // taskCreate(SFS_MAIN, 10);
+    // taskCreate(collectMagData, 100);
+    // taskCreate(send_latency, 30);
+    taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
     schedStart();
@@ -402,7 +403,6 @@ void CAN1_RX0_IRQHandler()
 
 void SFS_MAIN(void)
 {
-    SFS_pp(&rtU);
 
     static boolean_T OverrunFlag = false;
 
@@ -423,14 +423,14 @@ void SFS_MAIN(void)
 
     /* Step the model */
     SFS_step(rtM, &rtU, &rtY);
-    SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
-                 (int16_t)(rtY.pos_VNED[1] * 100), (int16_t)(rtY.pos_VNED[2] * 100));
-    SEND_SFS_VEL(q_tx_can, (int16_t)(rtY.vel_VNED[0] * 100),
-                 (int16_t)(rtY.vel_VNED[1] * 100), (int16_t)(rtY.vel_VNED[2] * 100));
+    // SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
+    //              (int16_t)(rtY.pos_VNED[1] * 100), (int16_t)(rtY.pos_VNED[2] * 100));
+    // SEND_SFS_VEL(q_tx_can, (int16_t)(rtY.vel_VNED[0] * 100),
+    //              (int16_t)(rtY.vel_VNED[1] * 100), (int16_t)(rtY.vel_VNED[2] * 100));
     SEND_SFS_ACC(q_tx_can, (int16_t)(rtY.acc_VNED[0] * 100),
                  (int16_t)(rtY.acc_VNED[1] * 100), (int16_t)(rtY.acc_VNED[2] * 100));
-    SEND_SFS_ANG(q_tx_can, (int16_t)(rtY.ang_NED[0] * 10000),
-                 (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
+    // SEND_SFS_ANG(q_tx_can, (int16_t)(rtY.ang_NED[0] * 10000),
+    //              (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
     SEND_SFS_ANG_VEL(q_tx_can, (int16_t)(rtY.angvel_VNED[0] * 10000),
                      (int16_t)(rtY.angvel_VNED[1] * 10000), (int16_t)(rtY.angvel_VNED[2] * 10000));
     /* Get model outputs here */

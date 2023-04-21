@@ -57,7 +57,7 @@
 #define DLC_GPS_OOR 1
 #define DLC_IMU_OOR 1
 #define DLC_BMM_OOR 1
-#define DLC_LATENCY_MAIN 4
+#define DLC_LATENCY_MAIN 8
 /* END AUTO DLC DEFS */
 
 // Message sending macros
@@ -278,7 +278,8 @@ typedef union {
         uint64_t bmm_oor: 1;
     } bmm_oor;
     struct {
-        uint64_t latency_main_out: 32;
+        uint64_t latency_start: 32;
+        uint64_t latency_receive: 32;
     } latency_main;
     uint8_t raw_data[8];
 } __attribute__((packed)) CanParsedData_t;
@@ -289,7 +290,8 @@ typedef union {
 /* BEGIN AUTO CAN DATA STRUCTURE */
 typedef struct {
     struct {
-        uint32_t latency_main_out;
+        uint32_t latency_start;
+        uint32_t latency_receive;
         uint8_t stale;
         uint32_t last_rx;
     } latency_main;

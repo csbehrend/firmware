@@ -101,6 +101,7 @@ void canRxUpdate()
                 can_data.latency_nav.latency_nav_out = msg_data_a->latency_nav.latency_nav_out;
                 can_data.latency_nav.stale = 0;
                 can_data.latency_nav.last_rx = sched.os_ticks;
+                latency_nav_CALLBACK(msg_data_a);
                 break;
             case ID_FAULT_SYNC_DRIVELINE:
                 can_data.fault_sync_driveline.idx = msg_data_a->fault_sync_driveline.idx;

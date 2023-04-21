@@ -115,8 +115,9 @@ BO_ 2348811009 rear_controller_temps: 2 Main_Module
  SG_ right_temp : 8|8@1+ (1,0) [0|0] "C" Vector__XXX
  SG_ left_temp : 0|8@1+ (1,0) [0|0] "C" Vector__XXX
 
-BO_ 2357343553 latency_main: 4 Main_Module
- SG_ latency_main_out : 0|32@1+ (1,0) [0|0] "" Vector__XXX
+BO_ 2357343553 latency_main: 8 Main_Module
+ SG_ latency_receive : 32|32@1+ (1,0) [0|0] "" Vector__XXX
+ SG_ latency_start : 0|32@1+ (1,0) [0|0] "" Vector__XXX
 
 BO_ 2148059649 fault_sync_main_module: 3 Main_Module
  SG_ latched : 16|1@1+ (1,0) [0|0] "" Vector__XXX
@@ -914,7 +915,8 @@ CM_ BO_ 2348811009 "Temperature of motor controllers";
 CM_ SG_ 2348811009 right_temp "";
 CM_ SG_ 2348811009 left_temp "";
 CM_ BO_ 2357343553 "main latency check message";
-CM_ SG_ 2357343553 latency_main_out "";
+CM_ SG_ 2357343553 latency_receive "";
+CM_ SG_ 2357343553 latency_start "";
 CM_ BO_ 2148059649 "Fault status message";
 CM_ SG_ 2148059649 latched "";
 CM_ SG_ 2148059649 idx "";

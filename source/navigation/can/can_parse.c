@@ -36,7 +36,8 @@ void canRxUpdate()
         switch(msg_header.ExtId)
         {
             case ID_LATENCY_MAIN:
-                can_data.latency_main.latency_main_out = msg_data_a->latency_main.latency_main_out;
+                can_data.latency_main.latency_start = msg_data_a->latency_main.latency_start;
+                can_data.latency_main.latency_receive = msg_data_a->latency_main.latency_receive;
                 can_data.latency_main.stale = 0;
                 can_data.latency_main.last_rx = sched.os_ticks;
                 break;

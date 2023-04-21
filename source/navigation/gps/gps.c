@@ -60,7 +60,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[2] = GPS->raw_message[68];
             iLong.bytes[3] = GPS->raw_message[69];
             GPS->g_speed = iLong.iLong;
-            GPS->speed_rounded = (int16_t)((GPS->g_speed * 100) / 10000);
+            GPS->speed_rounded = (int16_t)((GPS->g_speed * 1000) / 10000);
 
             // Collect Longitude
             GPS->longitude_bytes[0] = GPS->raw_message[30];
@@ -96,7 +96,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[2] = GPS->raw_message[44];
             iLong.bytes[3] = GPS->raw_message[45];
             GPS->height = iLong.iLong;
-            GPS->height_rounded = (int16_t)((GPS->height * 100) / 10000);
+            GPS->height_rounded = (int16_t)((GPS->height * 1000) / 10000);
 
             // Collect North Velocity
             GPS->n_vel_bytes[0] = GPS->raw_message[54];
@@ -108,7 +108,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[2] = GPS->raw_message[56];
             iLong.bytes[3] = GPS->raw_message[57];
             GPS->n_vel = iLong.iLong;
-            GPS->n_vel_rounded = (int16_t)((GPS->n_vel * 100) / 10000);
+            GPS->n_vel_rounded = (int16_t)((GPS->n_vel * 1000) / 10000);
             GPS->n_vel_sfs1 = (double)(GPS->n_vel);
             GPS->n_vel_sfs2 = (double)GPS->n_vel;
 
@@ -122,7 +122,7 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[2] = GPS->raw_message[60];
             iLong.bytes[3] = GPS->raw_message[61];
             GPS->e_vel = iLong.iLong;
-            GPS->e_vel_rounded = (int16_t)((GPS->e_vel * 100) / 10000);
+            GPS->e_vel_rounded = (int16_t)((GPS->e_vel * 1000) / 10000);
 
             // Collect Down Velocity
             GPS->d_vel_bytes[0] = GPS->raw_message[62];
@@ -134,42 +134,45 @@ bool parseVelocity(GPS_Handle_t *GPS, ExtU *rtU)
             iLong.bytes[2] = GPS->raw_message[64];
             iLong.bytes[3] = GPS->raw_message[65];
             GPS->d_vel = iLong.iLong;
-            GPS->d_vel_rounded = (int16_t)((GPS->d_vel * 100) / 10000);
+            GPS->d_vel_rounded = (int16_t)((GPS->d_vel * 1000) / 10000);
 
-            rtU->vel[0] = CLAMP(((double)GPS->n_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
-            rtU->vel[1] = CLAMP(((double)GPS->e_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
-            rtU->vel[2] = CLAMP(((double)GPS->d_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+            // rtU->vel[0] = CLAMP(((double)GPS->n_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+            // rtU->vel[1] = CLAMP(((double)GPS->e_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+            // rtU->vel[2] = CLAMP(((double)GPS->d_vel) * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
 
-            rtU->pos[0] = CLAMP(((double)GPS->latitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
-            rtU->pos[1] = CLAMP(((double)GPS->longitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
-            rtU->pos[2] = CLAMP(((double)GPS->height) * POS_H_CALIBRATION, MIN_POS, MAX_POS);
+            // rtU->pos[0] = CLAMP(((double)GPS->latitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
+            // rtU->pos[1] = CLAMP(((double)GPS->longitude) * POS_DEG_CALIBRATION, MIN_POS, MAX_POS);
+            // rtU->pos[2] = CLAMP(((double)GPS->height) * POS_H_CALIBRATION, MIN_POS, MAX_POS);
 
-            uint8_t vel_oor = 0;
-            uint8_t pos_oor = 0;
-            if ((rtU->vel[0] > MAX_VEL) || (rtU->vel[0] < MIN_VEL) ||
-                (rtU->vel[1] > MAX_VEL) || (rtU->vel[1] < MIN_VEL) ||
-                (rtU->vel[2] > MAX_VEL) || (rtU->vel[2] < MIN_VEL))
-            {
-                vel_oor = 1;
-            }
+            // uint8_t vel_oor = 0;
+            // uint8_t pos_oor = 0;
+            // if ((rtU->vel[0] > MAX_VEL) || (rtU->vel[0] < MIN_VEL) ||
+            //     (rtU->vel[1] > MAX_VEL) || (rtU->vel[1] < MIN_VEL) ||
+            //     (rtU->vel[2] > MAX_VEL) || (rtU->vel[2] < MIN_VEL))
+            // {
+            //     vel_oor = 1;
+            // }
 
-            if ((rtU->pos[0] > MAX_POS) || (rtU->pos[0] < MIN_POS) ||
-                (rtU->pos[1] > MAX_POS) || (rtU->pos[1] < MIN_POS) ||
-                (rtU->pos[2] > MAX_POS) || (rtU->pos[2] < MIN_POS))
-            {
-                pos_oor = 1;
-            }
+            // if ((rtU->pos[0] > MAX_POS) || (rtU->pos[0] < MIN_POS) ||
+            //     (rtU->pos[1] > MAX_POS) || (rtU->pos[1] < MIN_POS) ||
+            //     (rtU->pos[2] > MAX_POS) || (rtU->pos[2] < MIN_POS))
+            // {
+            //     pos_oor = 1;
+            // }
 
-            if ((vel_oor == 1) && (pos_oor == 1)) {
-                SEND_GPS_OOR(q_tx_can, 1, 1);
-            }
-            else if (vel_oor == 1) {
-                SEND_GPS_OOR(q_tx_can, 1, 0);
-            }
-            else if (pos_oor == 1) {
-                SEND_GPS_OOR(q_tx_can, 0, 1);
-            }
-            
+            // if ((vel_oor == 1) && (pos_oor == 1))
+            // {
+            //     SEND_GPS_OOR(q_tx_can, 1, 1);
+            // }
+            // else if (vel_oor == 1)
+            // {
+            //     SEND_GPS_OOR(q_tx_can, 1, 0);
+            // }
+            // else if (pos_oor == 1)
+            // {
+            //     SEND_GPS_OOR(q_tx_can, 0, 1);
+            // }
+
             SEND_GPS_VELOCITY(q_tx_can, GPS->n_vel_rounded, GPS->e_vel_rounded, GPS->d_vel_rounded, GPS->speed_rounded);
             SEND_GPS_COORDINATES(q_tx_can, GPS->lat_rounded, GPS->lon_rounded);
             SEND_GPS_POSITION(q_tx_can, 0, 0, 0, GPS->height_rounded);
