@@ -26,6 +26,7 @@
 #define ID_START_BUTTON 0x4000005
 #define ID_DASHBOARD_HB 0x4001905
 #define ID_DASHBOARD_VOLTS_TEMP 0x4001945
+#define ID_SHOCKPOTS 0x4001985
 #define ID_FAULT_SYNC_DASHBOARD 0x8cb05
 #define ID_DAQ_RESPONSE_DASHBOARD 0x17ffffc5
 #define ID_MAIN_HB 0x4001901
@@ -61,6 +62,7 @@
 #define DLC_START_BUTTON 1
 #define DLC_DASHBOARD_HB 1
 #define DLC_DASHBOARD_VOLTS_TEMP 6
+#define DLC_SHOCKPOTS 8
 #define DLC_FAULT_SYNC_DASHBOARD 3
 #define DLC_DAQ_RESPONSE_DASHBOARD 8
 #define DLC_MAIN_HB 2
@@ -137,6 +139,15 @@
         data_a->dashboard_volts_temp.mcu_temp = mcu_temp_;\
         data_a->dashboard_volts_temp.volts_5v = volts_5v_;\
         data_a->dashboard_volts_temp.volts_3v3 = volts_3v3_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_SHOCKPOTS(queue, shockpot_left_, shockpot_right_, shockpot_left_s_, shockpot_right_s_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_SHOCKPOTS, .DLC=DLC_SHOCKPOTS, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->shockpots.shockpot_left = shockpot_left_;\
+        data_a->shockpots.shockpot_right = shockpot_right_;\
+        data_a->shockpots.shockpot_left_s = shockpot_left_s_;\
+        data_a->shockpots.shockpot_right_s = shockpot_right_s_;\
         qSendToBack(&queue, &msg);\
     } while(0)
 #define SEND_FAULT_SYNC_DASHBOARD(queue, idx_, latched_) do {\
@@ -224,6 +235,12 @@ typedef union {
         uint64_t volts_5v: 16;
         uint64_t volts_3v3: 16;
     } dashboard_volts_temp;
+    struct {
+        uint64_t shockpot_left: 16;
+        uint64_t shockpot_right: 16;
+        uint64_t shockpot_left_s: 16;
+        uint64_t shockpot_right_s: 16;
+    } shockpots;
     struct {
         uint64_t idx: 16;
         uint64_t latched: 1;

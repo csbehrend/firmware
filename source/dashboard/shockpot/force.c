@@ -4,54 +4,22 @@
 #include <errno.h>
 #include "force.h"
 
-/*  
+/*
     Ver 1.0, 2/05/22
-    
+
     Function foe determining the force based on a
-    simple model in the PDF. Some of the values need to 
+    simple model in the PDF. Some of the values need to
     be double checked before applying to the system.
 
-    Ref. 1 F. Janabi-Sharifi, V. Hayward and C. . -S. J. Chen, "Discrete-time adaptive windowing for 
-    velocity estimation," in IEEE Transactions on Control Systems Technology, 
+    Ref. 1 F. Janabi-Sharifi, V. Hayward and C. . -S. J. Chen, "Discrete-time adaptive windowing for
+    velocity estimation," in IEEE Transactions on Control Systems Technology,
     vol. 8, no. 6, pp. 1003-1009, Nov. 2000, doi: 10.1109/87.880606.
 */
-
-struct Wheel left_rear = {
-    .geom = {
-        // Length
-        .oa = 1, 
-        .ob = 2,
-        .oc = 3,
-        .od = 4,
-        
-        // Angles and their sines/cosines
-        .fw_vert = 5,
-        .od_vert = 6,
-        .cob = 7,
-        .coa = 8,
-    }
-};
-
-struct Wheel right_rear = {
-    .geom = {
-        // Length
-        .oa = 1, 
-        .ob = 2,
-        .oc = 3,
-        .od = 4,
-
-        // Angles and their sines/cosines
-        .fw_vert = 5,
-        .od_vert = 6,
-        .cob = 7,
-        .coa = 8,
-    }
-};
 
 struct Wheel left_front = {
     .geom = {
         // Length
-        .oa = 1, 
+        .oa = 1,
         .ob = 2,
         .oc = 3,
         .od = 4,
@@ -67,7 +35,7 @@ struct Wheel left_front = {
 struct Wheel right_front = {
     .geom = {
         // Length
-        .oa = 1, 
+        .oa = 1,
         .ob = 2,
         .oc = 3,
         .od = 4,
@@ -80,7 +48,7 @@ struct Wheel right_front = {
     }
 };
 
-const float FORCE_COMP_FRONT[] = {    // copy data from one of the csv files, gives the measured compression damping force for a 
+const float FORCE_COMP_FRONT[] = {    // copy data from one of the csv files, gives the measured compression damping force for a
           0,                     // particular configuration of valves
     266.907,
     347.769,
@@ -109,7 +77,7 @@ const float FORCE_COMP_FRONT[] = {    // copy data from one of the csv files, gi
     715.218,
 };
 
-const float FORCE_REB_FRONT[] = {    // copy data from one of the csv files, gives the measured rebound damping force for a 
+const float FORCE_REB_FRONT[] = {    // copy data from one of the csv files, gives the measured rebound damping force for a
            0,                     // particular configuration of valves
     -232.487,
     -290.239,
@@ -138,7 +106,7 @@ const float FORCE_REB_FRONT[] = {    // copy data from one of the csv files, giv
     -615.468,
 };
 
-const float FORCE_COMP_REAR[] = {    // copy data from one of the csv files, gives the measured compression damping force for a 
+const float FORCE_COMP_REAR[] = {    // copy data from one of the csv files, gives the measured compression damping force for a
           0,                     // particular configuration of valves
     266.907,
     347.769,
@@ -167,7 +135,7 @@ const float FORCE_COMP_REAR[] = {    // copy data from one of the csv files, giv
     715.218,
 };
 
-const float FORCE_REB_REAR[] = {    // copy data from one of the csv files, gives the measured rebound damping force for a 
+const float FORCE_REB_REAR[] = {    // copy data from one of the csv files, gives the measured rebound damping force for a
            0,                     // particular configuration of valves
     -232.487,
     -290.239,
@@ -201,13 +169,13 @@ const float FORCE_REB_REAR[] = {    // copy data from one of the csv files, give
     *.csv files where the force is interpolted for values 0, 10, 20, ..., 250. This basically implements
     first oreder interpolation.
 */
-void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start) {     // second order polynomial fitting
+void _get_pot_speed_pos(uint16_t* x, struct Wheel* w, float delta_T, int n, int start) {     // second order polynomial fitting
     // x - array of position sensor data, which is cyclically updated
     // start - index of the latest measurement
     // delta_T - time interval between measurements
     // resolution - conversion of ADC step to real length
 
-    float b = 0;             
+    float b = 0;
     float s0 = 0;
     float s1 = 0;
     float s2 = 0;
@@ -217,7 +185,7 @@ void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start
         s1 += i * x[(start + i) % n];
         s2 += i * i * x[(start + i) % n];
     }
-    b = A0 * s0 - A1 * s1 + A2 * s2;   
+    b = A0 * s0 - A1 * s1 + A2 * s2;
 
     w->param.v = w->adc.resolution * b / delta_T;
     w->geom.cd = w->adc.resolution * x[start] +  w->adc.adc_0;
@@ -246,8 +214,8 @@ void _upadte_geometry (struct Geometry *g) {
     g->cos_ocd = (g->oc*g->oc + g->cd*g->cd - g->od*g->od)/(2 * g->oc * g->cd); // 1
 
     g->sin_ocd = sqrt(1 - g->cos_ocd*g->cos_ocd); // 2
-    
-    g->d_d = g->oc * g->sin_ocd; // 3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
+    g->d_d = g->oc * g->sin_ocd; // 3
 
     g->doc = fabs(asin(sin(g->ocd) * g->cd / g->od)); // 4
 
@@ -273,14 +241,14 @@ void _get_total_force (struct Wheel *w) {
 
 void _get_normal_force (struct Wheel *w, struct Wheel *w_other) {
 
-    w->param.n = (w->param.f_total * w->geom.d_d + 
+    w->param.n = (w->param.f_total * w->geom.d_d +
                         w->param.gamma * (w_other->geom.x_a - w->geom.x_a) *
                         w->geom.d_a / w->param.s / w->param.s
                     ) / (w->geom.d_w * cos(w->geom.fw_vert));
 
 }
 
-void _calc_pipeline(int* x_l, int* x_r, struct Wheel *w_l, struct Wheel *w_r, int start) {
+void _calc_pipeline(uint16_t* x_l, uint16_t* x_r, struct Wheel *w_l, struct Wheel *w_r, int start) {
     _get_pot_speed_pos(x_l, w_l, DELTA_T, N_SAMPLE, start);
     _get_pot_speed_pos(x_r, w_r, DELTA_T, N_SAMPLE, start);
 
@@ -297,19 +265,18 @@ void _calc_pipeline(int* x_l, int* x_r, struct Wheel *w_l, struct Wheel *w_r, in
     _get_normal_force (w_r, w_l);
 }
 
-void force_rear(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
-    _calc_pipeline(x_l, x_r, &left_rear, &right_rear, start);
-    *n_l = left_rear.param.n;
-    *n_r = right_rear.param.n;
-}
-
-void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
+void force(float* n_l, float* n_r, uint16_t* x_l, uint16_t* x_r, int start) {
     _calc_pipeline(x_l, x_r, &left_front, &right_front, start);
     *n_l = left_front.param.n;
     *n_r = right_front.param.n;
 }
 
-// float f(int* x, float pot_speed, float resolution, float zero, float damp_force, float k, int start) { 
+void pot_speed(float* s_l, float* s_r) {
+    *s_l = left_front.param.v;
+    *s_r = right_front.param.v;
+}
+
+// float f(int* x, float pot_speed, float resolution, float zero, float damp_force, float k, int start) {
 //     return -k * (x[start] * resolution + zero) + damp_force;
 // }
 
@@ -332,10 +299,10 @@ void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
 // }
 
 /*
-    This is the main calculation function. It adjusts sampling window according to, 
+    This is the main calculation function. It adjusts sampling window according to,
     basically, change in speed. If the speed changes quickly, the estimator use only
-    first few measurements to reduce the delay. If the speed chages slowly, 
-    it adds more points t0 increase precision. The parameter ERROR that regulates this should be tuned 
+    first few measurements to reduce the delay. If the speed chages slowly,
+    it adds more points t0 increase precision. The parameter ERROR that regulates this should be tuned
     to achieve the best performance
 
     Input: sequence of the last N measurements of ADC.
@@ -347,7 +314,7 @@ void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
 // float pot_speed(int* x, float error, float resolution, float delta, int n, int start) {     // implements adaptive windowing as described in (1)
 
 //     float b = 0;
-//     float b_old = 0;                 
+//     float b_old = 0;
 
 //     for (int i = 5; i < n; i++) {               // initialize the loop over the window size
 //         float s1 = 0;                           // variables for summation
@@ -364,5 +331,5 @@ void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start) {
 //         }
 //         b_old = b;
 //     }
-//     return resolution * b_old / delta; 
+//     return resolution * b_old / delta;
 // }

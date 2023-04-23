@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #ifndef __FORCE__
 #define __FORCE__
 
@@ -66,14 +68,15 @@ struct Wheel {
     struct ADCconv adc;
 };
 
-void _get_pot_speed_pos(int* x, struct Wheel* w, float delta_T, int n, int start);
+void _get_pot_speed_pos(uint16_t* x, struct Wheel* w, float delta_T, int n, int start);
 void _get_damp_force (float *f_damp, float v, const float force_reb [VEL_SIZE], const float force_comp [VEL_SIZE]);
 void _upadte_geometry (struct Geometry *g);
 void _get_total_force (struct Wheel *w);
 void _get_normal_force (struct Wheel *w, struct Wheel *w_other);
-void _calc_pipeline(int* x_l, int* x_r, struct Wheel *w_l, struct Wheel *w_r, int start);
-void force_rear(float* n_l, float* n_r, int* x_l, int* x_r, int start);
-void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start);
+void _calc_pipeline(uint16_t* x_l, uint16_t* x_r, struct Wheel *w_l, struct Wheel *w_r, int start);
+void force(float* n_l, float* n_r, uint16_t* x_l, uint16_t* x_r, int start);
+void pot_speed(float* s_l, float* s_r);
+
 
 
 #define N_SAMPLE    50
@@ -93,17 +96,17 @@ void force_front(float* n_l, float* n_r, int* x_l, int* x_r, int start);
 #define K_FRONT       146.75      // spring constant, N/m
 
 #define GAMMA_REAR   2004.75     // torsion coefficient, lb*in/rad
-#define S_REAR       5           // ARB leverage, 
+#define S_REAR       5           // ARB leverage,
 #define COS_A_REAR   0.74        // cos_alpha
 #define K_REAR       0           // spring constant, lb/in
 
-#define RESOLUTION_REAR  1  // convert ADC value to real numbers, resolution of the ADC, 
-#define ZERO_REAR        0   // actual displacement when ADC shows 0, in  
+#define RESOLUTION_REAR  1  // convert ADC value to real numbers, resolution of the ADC,
+#define ZERO_REAR        0   // actual displacement when ADC shows 0, in
 
 // ignore it, just calculations
 // 1235 - 1 V - 0 deisplacement 2477 - 2V 1 inch
 
-#define RESOLUTION_FRONT  1  // convert ADC value to real numbers, resolution of the ADC, 
+#define RESOLUTION_FRONT  1  // convert ADC value to real numbers, resolution of the ADC,
 #define ZERO_FRONT        0   // actual displacement when ADC shows 0
 
 

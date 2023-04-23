@@ -21,6 +21,7 @@
 #include "lcd.h"
 #include "nextion.h"
 #include "hdd.h"
+#include "shockpot.h"
 
 
 GPIOInitConfig_t gpio_config[] = {
@@ -184,6 +185,7 @@ void pollHDD();
 void enableInterrupts();
 void sendMCUTempsVolts();
 void sendVoltageSense();
+void sendShockpots();
 
 
 q_handle_t q_tx_can;
@@ -225,6 +227,8 @@ int main (void){
     taskCreate(update_data_pages, 200);
     taskCreate(pedalsPeriodic, 15);
     taskCreate(sendMCUTempsVolts, 500);
+    taskCreate(sendShockpots, 200);
+    taskCreate(shockpot100Hz, 10);
 
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
@@ -330,6 +334,9 @@ void sendMCUTempsVolts() {
     float lv_3v3_sense = (VREF / 0xFFFU) * raw_adc_values.lv_3v3_sense;
     // SEND_DASHBOARD_VOLTS_TEMP(q_tx_can, calc_temp, (uint16_t)(lv_5v_sense * 100), (uint16_t)(lv_3v3_sense * 100));
     SEND_DASHBOARD_VOLTS_TEMP(q_tx_can, raw_adc_values.mcu_therm, raw_adc_values.lv_5v_sense, raw_adc_values.lv_3v3_sense);
+}
+void sendShockpots() {
+    SEND_SHOCKPOTS(q_tx_can, raw_adc_values.shock_left, raw_adc_values.shock_right, (uint16_t)(pot_speed_l * 100), (uint16_t)(pot_speed_r * 100));
 }
 
 void pollHDD() {

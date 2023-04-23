@@ -774,7 +774,21 @@
                             "msg_period":500,
                             "msg_hlp":1,
                             "msg_pgn":101
+                        },
+                        {
+                            "msg_name":"shockpots",
+                            "msg_desc":"periodic dashboard MCU temp",
+                            "signals":[
+                                {"sig_name": "shockpot_left", "type":"uint16_t"},
+                                {"sig_name": "shockpot_right", "type":"uint16_t"},
+                                {"sig_name": "shockpot_left_s", "type":"uint16_t"},
+                                {"sig_name": "shockpot_right_s", "type":"uint16_t"}
+                            ],
+                            "msg_period":200,
+                            "msg_hlp":1,
+                            "msg_pgn":102
                         }
+
 
                     ],
                     "rx":[
