@@ -125,6 +125,8 @@ void canRxUpdate()
                 break;
             case ID_MAX_CELL_TEMP:
                 can_data.max_cell_temp.max_temp = msg_data_a->max_cell_temp.max_temp;
+                can_data.max_cell_temp.stale = 0;
+                can_data.max_cell_temp.last_rx = sched.os_ticks;
                 break;
             case ID_REAR_CONTROLLER_TEMPS:
                 can_data.rear_controller_temps.left_temp = msg_data_a->rear_controller_temps.left_temp;
@@ -145,6 +147,42 @@ void canRxUpdate()
                 can_data.torque_request_main.rear_right = (int16_t) msg_data_a->torque_request_main.rear_right;
                 can_data.torque_request_main.stale = 0;
                 can_data.torque_request_main.last_rx = sched.os_ticks;
+                break;
+            case ID_REAR_WHEEL_SPEEDS:
+                can_data.rear_wheel_speeds.left_speed_mc = msg_data_a->rear_wheel_speeds.left_speed_mc;
+                can_data.rear_wheel_speeds.right_speed_mc = msg_data_a->rear_wheel_speeds.right_speed_mc;
+                can_data.rear_wheel_speeds.left_speed_sensor = msg_data_a->rear_wheel_speeds.left_speed_sensor;
+                can_data.rear_wheel_speeds.right_speed_sensor = msg_data_a->rear_wheel_speeds.right_speed_sensor;
+                can_data.rear_wheel_speeds.stale = 0;
+                can_data.rear_wheel_speeds.last_rx = sched.os_ticks;
+                break;
+            case ID_FLOWRATE_TEMPS:
+                can_data.flowrate_temps.battery_in_temp = (int8_t) msg_data_a->flowrate_temps.battery_in_temp;
+                can_data.flowrate_temps.battery_out_temp = (int8_t) msg_data_a->flowrate_temps.battery_out_temp;
+                can_data.flowrate_temps.drivetrain_in_temp = (int8_t) msg_data_a->flowrate_temps.drivetrain_in_temp;
+                can_data.flowrate_temps.drivetrain_out_temp = (int8_t) msg_data_a->flowrate_temps.drivetrain_out_temp;
+                can_data.flowrate_temps.battery_flowrate = msg_data_a->flowrate_temps.battery_flowrate;
+                can_data.flowrate_temps.drivetrain_flowrate = msg_data_a->flowrate_temps.drivetrain_flowrate;
+                can_data.flowrate_temps.battery_fan_speed = msg_data_a->flowrate_temps.battery_fan_speed;
+                can_data.flowrate_temps.drivetrain_fan_speed = msg_data_a->flowrate_temps.drivetrain_fan_speed;
+                can_data.flowrate_temps.stale = 0;
+                can_data.flowrate_temps.last_rx = sched.os_ticks;
+                break;
+            case ID_COOLANT_OUT:
+                can_data.coolant_out.bat_fan = msg_data_a->coolant_out.bat_fan;
+                can_data.coolant_out.dt_fan = msg_data_a->coolant_out.dt_fan;
+                can_data.coolant_out.bat_pump = msg_data_a->coolant_out.bat_pump;
+                can_data.coolant_out.bat_pump_aux = msg_data_a->coolant_out.bat_pump_aux;
+                can_data.coolant_out.dt_pump = msg_data_a->coolant_out.dt_pump;
+                can_data.coolant_out.stale = 0;
+                can_data.coolant_out.last_rx = sched.os_ticks;
+                coolant_out_CALLBACK(msg_data_a);
+                break;
+            case ID_GEARBOX:
+                can_data.gearbox.l_temp = (int8_t) msg_data_a->gearbox.l_temp;
+                can_data.gearbox.r_temp = (int8_t) msg_data_a->gearbox.r_temp;
+                can_data.gearbox.stale = 0;
+                can_data.gearbox.last_rx = sched.os_ticks;
                 break;
             case ID_DASHBOARD_BL_CMD:
                 can_data.dashboard_bl_cmd.cmd = msg_data_a->dashboard_bl_cmd.cmd;
@@ -214,6 +252,9 @@ void canRxUpdate()
     CHECK_STALE(can_data.orion_errors.stale,
                 sched.os_ticks, can_data.orion_errors.last_rx,
                 UP_ORION_ERRORS);
+    CHECK_STALE(can_data.max_cell_temp.stale,
+                sched.os_ticks, can_data.max_cell_temp.last_rx,
+                UP_MAX_CELL_TEMP);
     CHECK_STALE(can_data.rear_controller_temps.stale,
                 sched.os_ticks, can_data.rear_controller_temps.last_rx,
                 UP_REAR_CONTROLLER_TEMPS);
@@ -223,6 +264,18 @@ void canRxUpdate()
     CHECK_STALE(can_data.torque_request_main.stale,
                 sched.os_ticks, can_data.torque_request_main.last_rx,
                 UP_TORQUE_REQUEST_MAIN);
+    CHECK_STALE(can_data.rear_wheel_speeds.stale,
+                sched.os_ticks, can_data.rear_wheel_speeds.last_rx,
+                UP_REAR_WHEEL_SPEEDS);
+    CHECK_STALE(can_data.flowrate_temps.stale,
+                sched.os_ticks, can_data.flowrate_temps.last_rx,
+                UP_FLOWRATE_TEMPS);
+    CHECK_STALE(can_data.coolant_out.stale,
+                sched.os_ticks, can_data.coolant_out.last_rx,
+                UP_COOLANT_OUT);
+    CHECK_STALE(can_data.gearbox.stale,
+                sched.os_ticks, can_data.gearbox.last_rx,
+                UP_GEARBOX);
     /* END AUTO STALE CHECKS */
 }
 
@@ -256,19 +309,25 @@ bool initCANFilter()
     CAN1->sFilterRegister[4].FR1 = (ID_PRECHARGE_HB << 3) | 4;
     CAN1->sFilterRegister[4].FR2 = (ID_TORQUE_REQUEST_MAIN << 3) | 4;
     CAN1->FA1R |= (1 << 5);    // configure bank 5
-    CAN1->sFilterRegister[5].FR1 = (ID_DASHBOARD_BL_CMD << 3) | 4;
-    CAN1->sFilterRegister[5].FR2 = (ID_FAULT_SYNC_MAIN_MODULE << 3) | 4;
+    CAN1->sFilterRegister[5].FR1 = (ID_REAR_WHEEL_SPEEDS << 3) | 4;
+    CAN1->sFilterRegister[5].FR2 = (ID_FLOWRATE_TEMPS << 3) | 4;
     CAN1->FA1R |= (1 << 6);    // configure bank 6
-    CAN1->sFilterRegister[6].FR1 = (ID_FAULT_SYNC_DRIVELINE << 3) | 4;
-    CAN1->sFilterRegister[6].FR2 = (ID_FAULT_SYNC_PRECHARGE << 3) | 4;
+    CAN1->sFilterRegister[6].FR1 = (ID_COOLANT_OUT << 3) | 4;
+    CAN1->sFilterRegister[6].FR2 = (ID_GEARBOX << 3) | 4;
     CAN1->FA1R |= (1 << 7);    // configure bank 7
-    CAN1->sFilterRegister[7].FR1 = (ID_FAULT_SYNC_TORQUE_VECTOR << 3) | 4;
-    CAN1->sFilterRegister[7].FR2 = (ID_FAULT_SYNC_TEST_NODE << 3) | 4;
+    CAN1->sFilterRegister[7].FR1 = (ID_DASHBOARD_BL_CMD << 3) | 4;
+    CAN1->sFilterRegister[7].FR2 = (ID_FAULT_SYNC_MAIN_MODULE << 3) | 4;
     CAN1->FA1R |= (1 << 8);    // configure bank 8
-    CAN1->sFilterRegister[8].FR1 = (ID_SET_FAULT << 3) | 4;
-    CAN1->sFilterRegister[8].FR2 = (ID_RETURN_FAULT_CONTROL << 3) | 4;
+    CAN1->sFilterRegister[8].FR1 = (ID_FAULT_SYNC_DRIVELINE << 3) | 4;
+    CAN1->sFilterRegister[8].FR2 = (ID_FAULT_SYNC_PRECHARGE << 3) | 4;
     CAN1->FA1R |= (1 << 9);    // configure bank 9
-    CAN1->sFilterRegister[9].FR1 = (ID_DAQ_COMMAND_DASHBOARD << 3) | 4;
+    CAN1->sFilterRegister[9].FR1 = (ID_FAULT_SYNC_TORQUE_VECTOR << 3) | 4;
+    CAN1->sFilterRegister[9].FR2 = (ID_FAULT_SYNC_TEST_NODE << 3) | 4;
+    CAN1->FA1R |= (1 << 10);    // configure bank 10
+    CAN1->sFilterRegister[10].FR1 = (ID_SET_FAULT << 3) | 4;
+    CAN1->sFilterRegister[10].FR2 = (ID_RETURN_FAULT_CONTROL << 3) | 4;
+    CAN1->FA1R |= (1 << 11);    // configure bank 11
+    CAN1->sFilterRegister[11].FR1 = (ID_DAQ_COMMAND_DASHBOARD << 3) | 4;
     /* END AUTO FILTER */
 
     CAN1->FMR  &= ~CAN_FMR_FINIT;             // Enable Filters (exit filter init mode)

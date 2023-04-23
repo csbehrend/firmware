@@ -25,12 +25,15 @@
 #define ID_BALANCE_REQUEST 0xc00002a
 #define ID_PRECHARGE_HB 0x4001944
 #define ID_ELCON_CHARGER_COMMAND 0x1806e5f4
+#define ID_NUM_THEM_BAD 0x80080c4
 #define ID_PACK_CHARGE_STATUS 0x8008084
 #define ID_GYRO_DATA 0x4008004
 #define ID_ACCEL_DATA 0x4008044
 #define ID_ANGLE_DATA 0x4008104
 #define ID_MAX_CELL_TEMP 0x404e604
 #define ID_MOD_CELL_TEMP_AVG 0x14008084
+#define ID_MOD_CELL_TEMP_MAX 0x14008104
+#define ID_MOD_CELL_TEMP_MIN 0x14008204
 #define ID_RAW_CELL_TEMP 0x140080c4
 #define ID_FAULT_SYNC_PRECHARGE 0x8cac4
 #define ID_DAQ_RESPONSE_PRECHARGE 0x17ffffc4
@@ -72,12 +75,15 @@
 #define DLC_BALANCE_REQUEST 2
 #define DLC_PRECHARGE_HB 2
 #define DLC_ELCON_CHARGER_COMMAND 5
+#define DLC_NUM_THEM_BAD 4
 #define DLC_PACK_CHARGE_STATUS 7
 #define DLC_GYRO_DATA 6
 #define DLC_ACCEL_DATA 6
 #define DLC_ANGLE_DATA 6
 #define DLC_MAX_CELL_TEMP 2
 #define DLC_MOD_CELL_TEMP_AVG 8
+#define DLC_MOD_CELL_TEMP_MAX 8
+#define DLC_MOD_CELL_TEMP_MIN 8
 #define DLC_RAW_CELL_TEMP 7
 #define DLC_FAULT_SYNC_PRECHARGE 3
 #define DLC_DAQ_RESPONSE_PRECHARGE 8
@@ -148,6 +154,15 @@
         data_a->elcon_charger_command.charge_disable = charge_disable_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_NUM_THEM_BAD(queue, module_1_, module_2_, module_3_, module_4_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_NUM_THEM_BAD, .DLC=DLC_NUM_THEM_BAD, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->num_them_bad.module_1 = module_1_;\
+        data_a->num_them_bad.module_2 = module_2_;\
+        data_a->num_them_bad.module_3 = module_3_;\
+        data_a->num_them_bad.module_4 = module_4_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 #define SEND_PACK_CHARGE_STATUS(queue, power_, charge_enable_, voltage_, current_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_PACK_CHARGE_STATUS, .DLC=DLC_PACK_CHARGE_STATUS, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
@@ -194,6 +209,24 @@
         data_a->mod_cell_temp_avg.temp_B = temp_B_;\
         data_a->mod_cell_temp_avg.temp_C = temp_C_;\
         data_a->mod_cell_temp_avg.temp_D = temp_D_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_MOD_CELL_TEMP_MAX(queue, temp_A_, temp_B_, temp_C_, temp_D_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_MOD_CELL_TEMP_MAX, .DLC=DLC_MOD_CELL_TEMP_MAX, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->mod_cell_temp_max.temp_A = temp_A_;\
+        data_a->mod_cell_temp_max.temp_B = temp_B_;\
+        data_a->mod_cell_temp_max.temp_C = temp_C_;\
+        data_a->mod_cell_temp_max.temp_D = temp_D_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_MOD_CELL_TEMP_MIN(queue, temp_A_, temp_B_, temp_C_, temp_D_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_MOD_CELL_TEMP_MIN, .DLC=DLC_MOD_CELL_TEMP_MIN, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->mod_cell_temp_min.temp_A = temp_A_;\
+        data_a->mod_cell_temp_min.temp_B = temp_B_;\
+        data_a->mod_cell_temp_min.temp_C = temp_C_;\
+        data_a->mod_cell_temp_min.temp_D = temp_D_;\
         qSendToBack(&queue, &msg);\
     } while(0)
 #define SEND_RAW_CELL_TEMP(queue, index_, temp_A_, temp_B_, temp_C_, temp_D_) do {\
@@ -259,6 +292,12 @@ typedef union {
         uint64_t charge_disable: 1;
     } elcon_charger_command;
     struct {
+        uint64_t module_1: 8;
+        uint64_t module_2: 8;
+        uint64_t module_3: 8;
+        uint64_t module_4: 8;
+    } num_them_bad;
+    struct {
         uint64_t power: 16;
         uint64_t charge_enable: 1;
         uint64_t voltage: 16;
@@ -288,6 +327,18 @@ typedef union {
         uint64_t temp_C: 16;
         uint64_t temp_D: 16;
     } mod_cell_temp_avg;
+    struct {
+        uint64_t temp_A: 16;
+        uint64_t temp_B: 16;
+        uint64_t temp_C: 16;
+        uint64_t temp_D: 16;
+    } mod_cell_temp_max;
+    struct {
+        uint64_t temp_A: 16;
+        uint64_t temp_B: 16;
+        uint64_t temp_C: 16;
+        uint64_t temp_D: 16;
+    } mod_cell_temp_min;
     struct {
         uint64_t index: 8;
         uint64_t temp_A: 12;

@@ -57,14 +57,31 @@
 // Part 828 on Adafruit
 #define PULSES_P_LITER (450)
 
+#define PWM_FREQUENCY 25000  //PWM frequency to be 25kHz
+
 // Thermistor specifications
 #define THERM_R1  10000 // Top resistor in voltage divider
 #define MAX_THERM 4095  // 12-bit adc precision
 // Temp (Celcius) = a * ln(resistance) + b
-#define THERM_A (-25.16)
-#define THERM_B (260.93)
+// Thermistor PN: GE-2102
+#define THERM_A (-25.16f)
+#define THERM_B (260.93f)
+
+// Thermistor PN: USP10981
+#define DT_THERM_A (-22.93f)
+#define DT_THERM_B (241.39f)
 
 #define AVG_WINDOW_SIZE 10
+
+typedef struct __attribute__((packed))
+{
+    uint8_t dt_pump;       // DT pump turned on
+    uint8_t dt_fan_power;  // DT fan turned on
+    uint8_t bat_pump;      // BAT pump turned on
+    uint8_t bat_pump_aux;  // BAT pump 2 turned on
+    uint8_t bat_fan_power; // BAT fan turned on
+} Cooling_output_t;
+
 
 typedef struct
 {
@@ -77,14 +94,14 @@ typedef struct
     uint32_t dt_delta_t;
     uint32_t bat_delta_t;
 
-    uint8_t dt_pump;       // DT pump turned on
-    uint8_t dt_fan_power;        // DT fan turned on
+    bool    daq_override;          // Outputs controlled by DAQ
+    Cooling_output_t out_daq_req;  // Outputs requested by DAQ
+    Cooling_output_t out;          // Outputs sent to peripherals
+
     uint8_t dt_temp_error; // DT either over temp or not receiving
     uint8_t dt_flow_error; // DT flow is too low
     uint8_t dt_rose;       // DT pump has been on for
                            // the startup time
-    uint8_t bat_pump;      // BAT pump turned on
-    uint8_t bat_fan_power;       // BAT fan turned on
     uint8_t bat_temp_error;// BAT either over temp or not receiving temps
     uint8_t bat_flow_error;// BAT flow is too low
     uint8_t bat_rose;      // BAT pump has been on for

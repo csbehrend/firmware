@@ -2,6 +2,7 @@
 #include "stm32l496xx.h"
 #include "common/bootloader/bootloader_common.h"
 #include "common/faults/faults.h"
+#include "common/modules/wheel_speeds/wheel_speeds.h"
 #include "common/phal_L4/adc/adc.h"
 #include "common/phal_L4/can/can.h"
 #include "common/phal_L4/eeprom_spi/eeprom_spi.h"
@@ -9,6 +10,10 @@
 #include "common/phal_L4/gpio/gpio.h"
 #include "common/phal_L4/i2c/i2c.h"
 #include "common/phal_L4/rcc/rcc.h"
+#include "common/phal_L4/usart/usart.h"
+#include "common/plettenberg/plettenberg.h"
+#include "common/phal_L4/usart/usart.h"
+#include "common/plettenberg/plettenberg.h"
 #include "common/psched/psched.h"
 #include "common/queue/queue.h"
 
@@ -74,18 +79,17 @@ GPIOInitConfig_t gpio_config[] = {
     // Drivetrain
     GPIO_INIT_ANALOG(DT_GB_THERM_L_GPIO_Port, DT_GB_THERM_L_Pin),
     GPIO_INIT_ANALOG(DT_GB_THERM_R_GPIO_Port, DT_GB_THERM_R_Pin),
-    // GPIO_INIT_OUTPUT(THERM_MUX_S0_GPIO_Port, THERM_MUX_S0_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_OUTPUT(DT_PUMP_CTRL_GPIO_Port, DT_PUMP_CTRL_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_AF(DT_FLOW_RATE_GPIO_Port, DT_FLOW_RATE_Pin, 1, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_PULL_DOWN),
     GPIO_INIT_AF(DT_FAN_CTRL_GPIO_Port, DT_FAN_CTRL_Pin, 2, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_OPEN_DRAIN),
+    // GPIO_INIT_OUTPUT(DT_FAN_CTRL_GPIO_Port, DT_FAN_CTRL_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_AF(DT_FAN_TACK_GPIO_Port, DT_FAN_TACK_Pin, 14, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_PULL_DOWN),
     // HV Battery
-    // GPIO_INIT_ANALOG(BAT_THERM_OUT_GPIO_Port, BAT_THERM_OUT_Pin),
-    // GPIO_INIT_ANALOG(BAT_THERM_IN_GPIO_Port, BAT_THERM_IN_Pin),
     GPIO_INIT_OUTPUT(BAT_PUMP_CTRL_1_GPIO_Port, BAT_PUMP_CTRL_1_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_OUTPUT(BAT_PUMP_CTRL_2_GPIO_Port, BAT_PUMP_CTRL_2_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_AF(BAT_FLOW_RATE_GPIO_Port, BAT_FLOW_RATE_Pin, 3, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_PULL_DOWN),
     GPIO_INIT_AF(BAT_FAN_CTRL_GPIO_Port, BAT_FAN_CTRL_Pin, 2, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_PUSH_PULL, GPIO_INPUT_OPEN_DRAIN),
+    // GPIO_INIT_OUTPUT(BAT_FAN_CTRL_GPIO_Port, BAT_FAN_CTRL_Pin, GPIO_OUTPUT_LOW_SPEED),
     GPIO_INIT_AF(BAT_FAN_TACK_GPIO_Port, BAT_FAN_TACK_Pin, 14, GPIO_OUTPUT_HIGH_SPEED, GPIO_OUTPUT_OPEN_DRAIN, GPIO_INPUT_PULL_DOWN),
     // LV Status
     GPIO_INIT_ANALOG(LV_24V_V_SENSE_GPIO_Port, LV_24V_V_SENSE_Pin),
@@ -102,6 +106,63 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_ANALOG(THERM_MUX_D_GPIO_Port, THERM_MUX_D_Pin)
 };
 
+/* USART Configuration */
+// Left Motor Controller UART
+dma_init_t usart_l_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_l_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+char usart_l_rx_array[MC_MAX_RX_LENGTH] = {'\0'};
+volatile usart_rx_buf_t huart_l_rx_buf = {
+    .last_msg_time = 0, .msg_size = MC_MAX_TX_LENGTH,
+    .last_msg_loc  = 0, .last_rx_time = 0,
+    .rx_buf_size   = MC_MAX_RX_LENGTH, .rx_buf = usart_l_rx_array
+};
+usart_init_t huart_l = {
+    .baud_rate   = 115200,
+    .word_length = WORD_8,
+    .hw_flow_ctl = HW_DISABLE,
+    .mode        = MODE_TX_RX,
+    .stop_bits   = SB_ONE,
+    .parity      = PT_NONE,
+    .obsample    = OB_DISABLE,
+    .ovsample    = OV_16,
+    .adv_feature.rx_inv    = false,
+    .adv_feature.tx_inv    = false,
+    .adv_feature.auto_baud = false,
+    .adv_feature.data_inv  = false,
+    .adv_feature.msb_first = false,
+    .adv_feature.overrun   = false,
+    .adv_feature.dma_on_rx_err = false,
+    .tx_dma_cfg = &usart_l_tx_dma_config,
+    .rx_dma_cfg = &usart_l_rx_dma_config
+};
+// Right Motor Controller UART
+dma_init_t usart_r_tx_dma_config = USART2_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_r_rx_dma_config = USART2_RXDMA_CONT_CONFIG(NULL, 2);
+char usart_r_rx_array[MC_MAX_RX_LENGTH] = {'\0'};
+volatile usart_rx_buf_t huart_r_rx_buf = {
+    .last_msg_time = 0, .msg_size = MC_MAX_TX_LENGTH,
+    .last_msg_loc  = 0, .last_rx_time = 0,
+    .rx_buf_size   = MC_MAX_RX_LENGTH, .rx_buf = usart_r_rx_array
+};
+usart_init_t huart_r = {
+    .baud_rate   = 115200,
+    .word_length = WORD_8,
+    .hw_flow_ctl = HW_DISABLE,
+    .mode        = MODE_TX_RX,
+    .stop_bits   = SB_ONE,
+    .parity      = PT_NONE,
+    .obsample    = OB_DISABLE,
+    .ovsample    = OV_16,
+    .adv_feature.rx_inv    = false,
+    .adv_feature.tx_inv    = false,
+    .adv_feature.auto_baud = false,
+    .adv_feature.data_inv  = false,
+    .adv_feature.msb_first = false,
+    .adv_feature.overrun   = false,
+    .adv_feature.dma_on_rx_err = false,
+    .tx_dma_cfg = &usart_r_tx_dma_config,
+    .rx_dma_cfg = &usart_r_rx_dma_config
+};
 /* ADC Configuration */
 ADCInitConfig_t adc_config = {
     .clock_prescaler = ADC_CLK_PRESC_16,
@@ -113,6 +174,7 @@ ADCInitConfig_t adc_config = {
 };
 
 /* With 11 items, 16 prescaler, and 640 sample time, each channel gets read every 1.4ms */
+volatile ADCReadings_t adc_readings;
 ADCChannelConfig_t adc_channel_config[] = {
     {.channel=V_MC_SENSE_ADC_CHNL,     .rank=1,  .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
     {.channel=V_BAT_SENSE_ADC_CHNL,    .rank=2,  .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
@@ -124,7 +186,10 @@ ADCChannelConfig_t adc_channel_config[] = {
     {.channel=LV_5V_V_SENSE_ADC_CHNL,  .rank=8,  .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
     {.channel=LV_5V_I_SENSE_ADC_CHNL,  .rank=9,  .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
     {.channel=LV_3V3_V_SENSE_ADC_CHNL, .rank=10, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
-    {.channel=THERM_MUX_D_ADC_CHNL,    .rank=11, .sampling_time=ADC_CHN_SMP_CYCLES_640_5}
+    {.channel=THERM_MUX_D_ADC_CHNL,    .rank=11, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+    {.channel=DT_GB_THERM_L_ADC_CHNL,  .rank=12, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+    {.channel=DT_GB_THERM_R_ADC_CHNL,  .rank=13, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+    {.channel=INTERNAL_THERM_ADC_CHNL, .rank=14, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
 };
 dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &adc_readings,
             sizeof(adc_readings) / sizeof(adc_readings.lv_3v3_v_sense), 0b01);
@@ -142,6 +207,7 @@ SPI_InitConfig_t spi_config = {
     .tx_dma_cfg = &spi_tx_dma_config,
     .periph = SPI1
 };
+
 
 /* Clock Configuration */
 #define TargetCoreClockrateHz 80000000
@@ -165,20 +231,25 @@ extern uint32_t PLLClockRateHz;
 void preflightAnimation(void);
 void preflightChecks(void);
 void heartBeatLED();
+void usartTxUpdate(void);
+void usartIdleIRQ(volatile usart_init_t *huart, volatile usart_rx_buf_t *rx_buf);
 void canTxUpdate(void);
 void send_fault(uint16_t, bool);
 extern void HardFault_Handler();
 
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
-
 uint8_t can_tx_fails; // number of CAN messages that failed to transmit
+q_handle_t q_tx_usart_l;
+q_handle_t q_tx_usart_r;
 
 int main(void){
     /* Data Struct Initialization */
     qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
     can_tx_fails = 0;
+    qConstruct(&q_tx_usart_l, MC_MAX_TX_LENGTH);
+    qConstruct(&q_tx_usart_r, MC_MAX_TX_LENGTH);
 
     /* HAL Initialization */
     if(0 != PHAL_configureClockRates(&clock_config))
@@ -198,15 +269,22 @@ int main(void){
     taskCreate(coolingPeriodic, 200);
     taskCreate(heartBeatLED, 500);
     taskCreate(carHeartbeat, 100);
-    // taskCreate(carPeriodic, 15);
-    // taskCreate(setFanPWM, 1);
-    taskCreate(updatePowerMonitor, 1000);
-    // taskCreate(updateFaults, 5);
+    taskCreate(carPeriodic, 15);
+    taskCreate(wheelSpeedsPeriodic, 15);
+    taskCreate(updatePowerMonitor, 100);
+    taskCreate(heartBeatTask, 100);
+    taskCreate(parseMCDataPeriodic, MC_LOOP_DT);
     taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
     taskCreate(memFg, MEM_FG_TIME);
+    // taskCreate(updateFaults, 1);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
+    taskCreateBackground(usartTxUpdate);
     taskCreateBackground(memBg);
+
+    // calibrateSteeringAngle(&i);
+    // SEND_LWS_CONFIG(q_tx_can, 0x05, 0, 0); // reset cal
+    // SEND_LWS_CONFIG(q_tx_can, 0x03, 0, 0); // start new
 
     schedStart();
 
@@ -219,6 +297,18 @@ void preflightChecks(void) {
     switch (state++)
     {
         case 0:
+            huart_l.rx_dma_cfg->circular = true;
+            if(!PHAL_initUSART(MC_L_UART, &huart_l, APB1ClockRateHz))
+            {
+                HardFault_Handler();
+            }
+            huart_r.rx_dma_cfg->circular = true;
+            if(!PHAL_initUSART(MC_R_UART, &huart_r, APB2ClockRateHz))
+            {
+                HardFault_Handler();
+            }
+            break;
+        case 1:
             if(!PHAL_initCAN(CAN1, false))
             {
                 HardFault_Handler();
@@ -230,7 +320,7 @@ void preflightChecks(void) {
             if (initMem(EEPROM_nWP_GPIO_Port, EEPROM_nWP_Pin, &spi_config, 1, 1) != E_SUCCESS)
                 HardFault_Handler();
            break;
-        case 1:
+        case 2:
             if(!PHAL_initADC(ADC1, &adc_config, adc_channel_config,
                             sizeof(adc_channel_config)/sizeof(ADCChannelConfig_t)))
             {
@@ -244,16 +334,31 @@ void preflightChecks(void) {
             PHAL_startTxfer(&adc_dma_config);
             PHAL_startADC(ADC1);
            break;
-        case 2:
+        case 3:
+            /* UART Initialization */
+            MC_L_UART->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
+            NVIC_EnableIRQ(USART1_IRQn);
+            // initial rx request
+            PHAL_usartRxDma(MC_L_UART, &huart_l,
+                            (uint16_t *) huart_l_rx_buf.rx_buf,
+                            huart_l_rx_buf.rx_buf_size);
+            MC_R_UART->CR1 &= ~(USART_CR1_RXNEIE | USART_CR1_TCIE | USART_CR1_TXEIE);
+            NVIC_EnableIRQ(USART2_IRQn);
+            // initial rx request
+            PHAL_usartRxDma(MC_R_UART, &huart_r,
+                            (uint16_t *) huart_r_rx_buf.rx_buf,
+                            huart_r_rx_buf.rx_buf_size);
+            break;
+        case 4:
            /* Module Initialization */
            carInit();
            coolingInit();
            break;
-       case 3:
+       case 5:
            initCANParse(&q_rx_can);
            if(daqInit(&q_tx_can))
                HardFault_Handler();
-           initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, ID_FAULT_SYNC_MAIN_MODULE);
+            initFaultLibrary(FAULT_NODE_NAME, &q_tx_can, ID_FAULT_SYNC_MAIN_MODULE);
            break;
         default:
             registerPreflightComplete(1);
@@ -288,18 +393,69 @@ void preflightAnimation(void) {
 void heartBeatLED(void)
 {
     static uint8_t trig;
+    // TODO: fix HB LED
     PHAL_toggleGPIO(HEARTBEAT_GPIO_Port, HEARTBEAT_Pin);
     if ((sched.os_ticks - last_can_rx_time_ms) >= CONN_LED_MS_THRESH)
          PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
     else PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
 
     // Send every other time (1000 ms)
-    if (trig) SEND_MCU_STATUS(q_tx_can, sched.skips, (uint8_t) sched.fg_time.cpu_use,
+    if (trig) {
+        SEND_MCU_STATUS(q_tx_can, sched.skips, (uint8_t) sched.fg_time.cpu_use,
                                            (uint8_t) sched.bg_time.cpu_use,
                                            sched.error, can_tx_fails);
+    }
     trig = !trig;
 }
 
+/* USART Message Handling */
+uint8_t tmp_left[MC_MAX_TX_LENGTH] = {'\0'};
+uint8_t tmp_right[MC_MAX_TX_LENGTH] = {'\0'};
+void usartTxUpdate(void)
+{
+    if (PHAL_usartTxDmaComplete(&huart_l) &&
+        qReceive(&q_tx_usart_l, tmp_left) == SUCCESS_G)
+    {
+        PHAL_usartTxDma(MC_L_UART, &huart_l, (uint16_t *) tmp_left, strlen(tmp_left));
+    }
+    if (PHAL_usartTxDmaComplete(&huart_r) &&
+        qReceive(&q_tx_usart_r, tmp_right) == SUCCESS_G)
+    {
+        PHAL_usartTxDma(MC_R_UART, &huart_r, (uint16_t *) tmp_right, strlen(tmp_right));
+    }
+}
+
+void USART1_IRQHandler(void) {
+    if (MC_L_UART->ISR & USART_ISR_IDLE) {
+        usartIdleIRQ(&huart_l, &huart_l_rx_buf);
+        MC_L_UART->ICR = USART_ICR_IDLECF;
+    }
+}
+
+void USART2_IRQHandler(void) {
+    if (MC_R_UART->ISR & USART_ISR_IDLE) {
+        usartIdleIRQ(&huart_r, &huart_r_rx_buf);
+        MC_R_UART->ICR = USART_ICR_IDLECF;
+    }
+}
+
+void usartIdleIRQ(volatile usart_init_t *huart, volatile usart_rx_buf_t *rx_buf)
+{
+    // TODO: check for overruns, framing errors, etc
+    uint16_t new_loc = 0;
+    rx_buf->last_rx_time = sched.os_ticks;
+    new_loc = rx_buf->rx_buf_size - huart->rx_dma_cfg->channel->CNDTR;      // extract last location from DMA
+    if (new_loc == rx_buf->rx_buf_size) new_loc = 0;                        // should never happen
+    else if (new_loc < rx_buf->last_rx_loc) new_loc += rx_buf->rx_buf_size; // wrap around
+    if (new_loc - rx_buf->last_rx_loc > rx_buf->msg_size)                   // status msg vs just an echo
+    {
+        rx_buf->last_msg_time = sched.os_ticks;
+        rx_buf->last_msg_loc = (rx_buf->last_rx_loc + 1) % rx_buf->rx_buf_size;
+    }
+    rx_buf->last_rx_loc = new_loc % rx_buf->rx_buf_size;
+}
+
+/* CAN Message Handling */
 void canTxUpdate(void)
 {
     CanMsgTypeDef_t tx_msg;

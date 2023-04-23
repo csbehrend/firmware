@@ -21,20 +21,27 @@
 // Message ID definitions
 /* BEGIN AUTO ID DEFS */
 #define ID_RAW_THROTTLE_BRAKE 0x14000285
+#define ID_COOLING_DRIVER_REQUEST 0xc0002c5
+#define ID_FILT_THROTTLE_BRAKE 0x4000245
 #define ID_START_BUTTON 0x4000005
 #define ID_DASHBOARD_HB 0x4001905
+#define ID_DASHBOARD_VOLTS_TEMP 0x4001945
 #define ID_FAULT_SYNC_DASHBOARD 0x8cb05
 #define ID_DAQ_RESPONSE_DASHBOARD 0x17ffffc5
 #define ID_MAIN_HB 0x4001901
 #define ID_REAR_WHEEL_DATA 0x4000043
-#define ID_REAR_MOTOR_CURRENTS_TEMPS 0xc0002c3
+#define ID_REAR_MOTOR_CURRENTS_TEMPS 0xc0002c1
 #define ID_ORION_INFO 0x140006b8
 #define ID_ORION_CURRENTS_VOLTS 0x140006f8
 #define ID_ORION_ERRORS 0xc000738
 #define ID_MAX_CELL_TEMP 0x404e604
-#define ID_REAR_CONTROLLER_TEMPS 0xc000303
+#define ID_REAR_CONTROLLER_TEMPS 0xc000301
 #define ID_PRECHARGE_HB 0x4001944
 #define ID_TORQUE_REQUEST_MAIN 0x4000041
+#define ID_REAR_WHEEL_SPEEDS 0x8000381
+#define ID_FLOWRATE_TEMPS 0x4000881
+#define ID_COOLANT_OUT 0x40008c1
+#define ID_GEARBOX 0x10000901
 #define ID_DASHBOARD_BL_CMD 0x409c47e
 #define ID_FAULT_SYNC_MAIN_MODULE 0x8ca01
 #define ID_FAULT_SYNC_DRIVELINE 0x8ca83
@@ -49,8 +56,11 @@
 // Message DLC definitions
 /* BEGIN AUTO DLC DEFS */
 #define DLC_RAW_THROTTLE_BRAKE 8
+#define DLC_COOLING_DRIVER_REQUEST 5
+#define DLC_FILT_THROTTLE_BRAKE 3
 #define DLC_START_BUTTON 1
 #define DLC_DASHBOARD_HB 1
+#define DLC_DASHBOARD_VOLTS_TEMP 6
 #define DLC_FAULT_SYNC_DASHBOARD 3
 #define DLC_DAQ_RESPONSE_DASHBOARD 8
 #define DLC_MAIN_HB 2
@@ -63,6 +73,10 @@
 #define DLC_REAR_CONTROLLER_TEMPS 2
 #define DLC_PRECHARGE_HB 2
 #define DLC_TORQUE_REQUEST_MAIN 8
+#define DLC_REAR_WHEEL_SPEEDS 8
+#define DLC_FLOWRATE_TEMPS 8
+#define DLC_COOLANT_OUT 3
+#define DLC_GEARBOX 2
 #define DLC_DASHBOARD_BL_CMD 5
 #define DLC_FAULT_SYNC_MAIN_MODULE 3
 #define DLC_FAULT_SYNC_DRIVELINE 3
@@ -86,6 +100,23 @@
         data_a->raw_throttle_brake.brake_pot = brake_pot_;\
         qSendToBack(&queue, &msg);\
     } while(0)
+#define SEND_COOLING_DRIVER_REQUEST(queue, dt_pump_, dt_fan_, batt_pump_, batt_pump2_, batt_fan_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_COOLING_DRIVER_REQUEST, .DLC=DLC_COOLING_DRIVER_REQUEST, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->cooling_driver_request.dt_pump = dt_pump_;\
+        data_a->cooling_driver_request.dt_fan = dt_fan_;\
+        data_a->cooling_driver_request.batt_pump = batt_pump_;\
+        data_a->cooling_driver_request.batt_pump2 = batt_pump2_;\
+        data_a->cooling_driver_request.batt_fan = batt_fan_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_FILT_THROTTLE_BRAKE(queue, throttle_, brake_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_FILT_THROTTLE_BRAKE, .DLC=DLC_FILT_THROTTLE_BRAKE, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->filt_throttle_brake.throttle = throttle_;\
+        data_a->filt_throttle_brake.brake = brake_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
 #define SEND_START_BUTTON(queue, start_) do {\
         CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_START_BUTTON, .DLC=DLC_START_BUTTON, .IDE=1};\
         CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
@@ -98,6 +129,14 @@
         data_a->dashboard_hb.apps_faulted = apps_faulted_;\
         data_a->dashboard_hb.bse_faulted = bse_faulted_;\
         data_a->dashboard_hb.apps_brake_faulted = apps_brake_faulted_;\
+        qSendToBack(&queue, &msg);\
+    } while(0)
+#define SEND_DASHBOARD_VOLTS_TEMP(queue, mcu_temp_, volts_5v_, volts_3v3_) do {\
+        CanMsgTypeDef_t msg = {.Bus=CAN1, .ExtId=ID_DASHBOARD_VOLTS_TEMP, .DLC=DLC_DASHBOARD_VOLTS_TEMP, .IDE=1};\
+        CanParsedData_t* data_a = (CanParsedData_t *) &msg.Data;\
+        data_a->dashboard_volts_temp.mcu_temp = mcu_temp_;\
+        data_a->dashboard_volts_temp.volts_5v = volts_5v_;\
+        data_a->dashboard_volts_temp.volts_3v3 = volts_3v3_;\
         qSendToBack(&queue, &msg);\
     } while(0)
 #define SEND_FAULT_SYNC_DASHBOARD(queue, idx_, latched_) do {\
@@ -124,9 +163,14 @@
 #define UP_ORION_INFO 32
 #define UP_ORION_CURRENTS_VOLTS 32
 #define UP_ORION_ERRORS 1000
+#define UP_MAX_CELL_TEMP 500
 #define UP_REAR_CONTROLLER_TEMPS 500
 #define UP_PRECHARGE_HB 100
 #define UP_TORQUE_REQUEST_MAIN 15
+#define UP_REAR_WHEEL_SPEEDS 15
+#define UP_FLOWRATE_TEMPS 200
+#define UP_COOLANT_OUT 1000
+#define UP_GEARBOX 2000
 /* END AUTO UP DEFS */
 
 #define CHECK_STALE(stale, curr, last, period) if(!stale && \
@@ -134,13 +178,14 @@
 
 /* BEGIN AUTO CAN ENUMERATIONS */
 typedef enum {
-    CAR_STATE_INIT,
+    CAR_STATE_IDLE,
     CAR_STATE_BUZZING,
     CAR_STATE_READY2DRIVE,
     CAR_STATE_ERROR,
     CAR_STATE_FATAL,
     CAR_STATE_RESET,
     CAR_STATE_RECOVER,
+    CAR_STATE_FAN_CTRL,
 } car_state_t;
 
 /* END AUTO CAN ENUMERATIONS */
@@ -156,6 +201,17 @@ typedef union {
         uint64_t brake_pot: 12;
     } raw_throttle_brake;
     struct {
+        uint64_t dt_pump: 8;
+        uint64_t dt_fan: 8;
+        uint64_t batt_pump: 8;
+        uint64_t batt_pump2: 8;
+        uint64_t batt_fan: 8;
+    } cooling_driver_request;
+    struct {
+        uint64_t throttle: 12;
+        uint64_t brake: 12;
+    } filt_throttle_brake;
+    struct {
         uint64_t start: 1;
     } start_button;
     struct {
@@ -163,6 +219,11 @@ typedef union {
         uint64_t bse_faulted: 1;
         uint64_t apps_brake_faulted: 1;
     } dashboard_hb;
+    struct {
+        uint64_t mcu_temp: 16;
+        uint64_t volts_5v: 16;
+        uint64_t volts_3v3: 16;
+    } dashboard_volts_temp;
     struct {
         uint64_t idx: 16;
         uint64_t latched: 1;
@@ -263,6 +324,33 @@ typedef union {
         uint64_t rear_left: 16;
         uint64_t rear_right: 16;
     } torque_request_main;
+    struct {
+        uint64_t left_speed_mc: 16;
+        uint64_t right_speed_mc: 16;
+        uint64_t left_speed_sensor: 16;
+        uint64_t right_speed_sensor: 16;
+    } rear_wheel_speeds;
+    struct {
+        uint64_t battery_in_temp: 8;
+        uint64_t battery_out_temp: 8;
+        uint64_t drivetrain_in_temp: 8;
+        uint64_t drivetrain_out_temp: 8;
+        uint64_t battery_flowrate: 8;
+        uint64_t drivetrain_flowrate: 8;
+        uint64_t battery_fan_speed: 8;
+        uint64_t drivetrain_fan_speed: 8;
+    } flowrate_temps;
+    struct {
+        uint64_t bat_fan: 8;
+        uint64_t dt_fan: 8;
+        uint64_t bat_pump: 1;
+        uint64_t bat_pump_aux: 1;
+        uint64_t dt_pump: 1;
+    } coolant_out;
+    struct {
+        uint64_t l_temp: 8;
+        uint64_t r_temp: 8;
+    } gearbox;
     struct {
         uint64_t cmd: 8;
         uint64_t data: 32;
@@ -395,6 +483,8 @@ typedef struct {
     } orion_errors;
     struct {
         uint16_t max_temp;
+        uint8_t stale;
+        uint32_t last_rx;
     } max_cell_temp;
     struct {
         uint8_t left_temp;
@@ -416,6 +506,41 @@ typedef struct {
         uint8_t stale;
         uint32_t last_rx;
     } torque_request_main;
+    struct {
+        uint16_t left_speed_mc;
+        uint16_t right_speed_mc;
+        uint16_t left_speed_sensor;
+        uint16_t right_speed_sensor;
+        uint8_t stale;
+        uint32_t last_rx;
+    } rear_wheel_speeds;
+    struct {
+        int8_t battery_in_temp;
+        int8_t battery_out_temp;
+        int8_t drivetrain_in_temp;
+        int8_t drivetrain_out_temp;
+        uint8_t battery_flowrate;
+        uint8_t drivetrain_flowrate;
+        uint8_t battery_fan_speed;
+        uint8_t drivetrain_fan_speed;
+        uint8_t stale;
+        uint32_t last_rx;
+    } flowrate_temps;
+    struct {
+        uint8_t bat_fan;
+        uint8_t dt_fan;
+        uint8_t bat_pump;
+        uint8_t bat_pump_aux;
+        uint8_t dt_pump;
+        uint8_t stale;
+        uint32_t last_rx;
+    } coolant_out;
+    struct {
+        int8_t l_temp;
+        int8_t r_temp;
+        uint8_t stale;
+        uint32_t last_rx;
+    } gearbox;
     struct {
         uint8_t cmd;
         uint32_t data;
@@ -457,6 +582,7 @@ extern can_data_t can_data;
 
 /* BEGIN AUTO EXTERN CALLBACK */
 extern void daq_command_DASHBOARD_CALLBACK(CanMsgTypeDef_t* msg_header_a);
+extern void coolant_out_CALLBACK(CanParsedData_t* msg_data_a);
 extern void dashboard_bl_cmd_CALLBACK(CanParsedData_t* msg_data_a);
 extern void handleCallbacks(uint16_t id, bool latched);
 extern void set_fault_daq(uint16_t id, bool value);

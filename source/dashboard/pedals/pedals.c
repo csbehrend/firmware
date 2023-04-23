@@ -1,16 +1,29 @@
 #include "pedals.h"
+#include "main.h"
+#include "common/phal_L4/gpio/gpio.h"
+#include "can_parse.h"
 
 pedals_t pedals = {0};
-volatile raw_pedals_t raw_pedals = {0};
+uint16_t thtl_limit = 4096;
 
-pedal_calibration_t pedal_calibration = {.t1max=1550,.t1min=300, // WARNING: DAQ VARIABLE orig: 300
-                                         .t2max=1550,.t2min=300, // IF EEPROM ENABLED,
-                                         .b1max=1000,.b1min=700, // VALUE WILL CHANGE
-                                         .b2max=820,.b2min=690, // 1400, 400
+pedal_calibration_t pedal_calibration = {.t1max=2015,.t1min=785, // WARNING: DAQ VARIABLE
+                                         .t2max=1920,.t2min=550, // IF EEPROM ENABLED,
+                                         .b1max=1200,.b1min=450, // VALUE WILL CHANGE
+                                         .b2max=1050,.b2min=425, // 1400, 400
                                          .b3max=124,.b3min=0};   // 910, 812 3312 3436
 
 uint16_t b3_buff[8] = {0};
+uint16_t t1_buff[10] = {0};
+uint16_t t2_buff[10] = {0};
+uint16_t b1_buff[10] = {0};
+uint16_t b2_buff[10] = {0};
 uint8_t b3_idx = 0;
+uint8_t t1_idx = 0;
+uint8_t t2_idx = 0;
+uint8_t b1_idx = 0;
+uint8_t b2_idx = 0;
+
+uint16_t filtered_pedals;
 
 uint16_t b3_offset = 0;
 uint32_t b3_start_cal_time = 0;
@@ -21,17 +34,19 @@ extern q_handle_t q_tx_can;
 void pedalsPeriodic(void)
 {
     // Get current values (don't want them changing mid-calculation)
-    uint16_t t1 = raw_pedals.t1;
-    uint16_t t2 = raw_pedals.t2;
-    uint16_t b1 = raw_pedals.b1;
-    uint16_t b2 = raw_pedals.b2;
-    uint16_t b3_raw = raw_pedals.b3;
+    uint16_t t1 = raw_adc_values.t1;
+    uint16_t t2 = raw_adc_values.t2;
+    uint16_t b1 = raw_adc_values.b1;
+    uint16_t b2 = raw_adc_values.b2;
+    uint16_t b3_raw = raw_adc_values.b3;
 
     b3_buff[b3_idx++] = b3_raw;
     b3_idx %= 8;
     uint32_t b3_sum = 0;
     for (uint8_t i = 0; i < 8; i++) b3_sum += b3_buff[i];
     uint16_t b3 = MAX_PEDAL_MEAS - (b3_sum / 8);
+
+    //3.3R2/(R2 - R1)
 
     // Calibrate minimum brake pot value after 2 seconds
     if (!b3_cal_complete)
@@ -73,9 +88,49 @@ void pedalsPeriodic(void)
     //     pedals.bse_faulted = false;
     // }
 
-    setFault(ID_BSE_WIRING_B1_FAULT, b1);
-    setFault(ID_BSE_WIRING_B2_FAULT, b2);
-    setFault(ID_BSE_WIRING_B3_FAULT, b3);
+    // setFault(ID_BSE_WIRING_B1_FAULT, b1);
+    // setFault(ID_BSE_WIRING_B2_FAULT, b2);
+    setFault(ID_BSE_FAULT, PHAL_readGPIO(BRK_FAIL_TAP_GPIO_Port, BRK_FAIL_TAP_Pin));
+    if (PHAL_readGPIO(BRK_STAT_TAP_GPIO_Port, BRK_STAT_TAP_Pin)) {
+        setFault(ID_BSPD_FAULT, can_data.orion_currents_volts.pack_current);
+    }
+    else {
+        setFault(ID_BSPD_FAULT, 0);
+    }
+
+    float t1_volts = (VREF / 0xFFFU) * t1;
+    float t2_volts = (VREF / 0XFFFU) * t2;
+
+    t1 = (t1_volts * RESISTOR_T1) / (VREF - t1_volts);
+    t2 = (t2_volts * RESISTOR_T2) / (VREF - t2_volts);
+
+    t1_buff[t1_idx++] = t1;
+    t2_buff[t2_idx++] = t2;
+    b1_buff[b1_idx++] = b1;
+    b2_buff[b2_idx++] = b2;
+
+    t1_idx = t1_idx % 10;
+    t2_idx = t2_idx % 10;
+    b1_idx %= 10;
+    b2_idx %= 10;
+
+    uint32_t t1_avg = 0;
+    uint32_t t2_avg = 0;
+    uint32_t b1_avg = 0;
+    uint32_t b2_avg = 0;
+
+    for (uint8_t i = 0; i < 10; i++) {
+        t1_avg += t1_buff[i];
+        t2_avg += t2_buff[i];
+        b1_avg += b1_buff[i];
+        b2_avg += b2_buff[i];
+    }
+
+    t1 =  (uint16_t) (t1_avg / 10);
+    t2 = (uint16_t) (t2_avg / 10);
+    b1 = (uint16_t) (b1_avg / 10);
+    b2 = (uint16_t) (b2_avg / 10);
+
 
 
     // Scale values based on min and max
@@ -99,10 +154,10 @@ void pedalsPeriodic(void)
     // t2 = MAX_PEDAL_MEAS - t2;
 
         // Mask
-    t1 &= 0xFFFC;
-    t2 &= 0xFFFC;
-    b1 &= 0xFFFC;
-    b2 &= 0xFFFC;
+    // t1 &= 0xFFFC;
+    // t2 &= 0xFFFC;
+    // b1 &= 0xFFFC;
+    // b2 &= 0xFFFC;
     b3 &= 0xFFFC;
 
 
@@ -154,19 +209,29 @@ void pedalsPeriodic(void)
     if (b2 >= APPS_BRAKE_THRESHOLD &&
         t2 >= APPS_THROTTLE_FAULT_THRESHOLD)
     {
-        setFault(ID_APPS_BRAKE_FAULT, true);
+        // setFault(ID_APPS_BRAKE_FAULT, true);
     }
     else if (t2 <= APPS_THROTTLE_CLEARFAULT_THRESHOLD)
     {
-        setFault(ID_APPS_BRAKE_FAULT, false);
+        // setFault(ID_APPS_BRAKE_FAULT, false);
     }
+
+
+
+
 
     //Fault States detected by Main Module, which will exit ready2drive
     // if (pedals.apps_faulted || pedals.bse_faulted || pedals.apps_brake_faulted)
     // {
     //     t2 = 0;
     // }
-    SEND_RAW_THROTTLE_BRAKE(q_tx_can, raw_pedals.t1,
-                            raw_pedals.t2, raw_pedals.b1,
-                            raw_pedals.b2, raw_pedals.b3);
+    t2 = t2 > thtl_limit ? thtl_limit : t2;
+    filtered_pedals = t2;
+
+    SEND_RAW_THROTTLE_BRAKE(q_tx_can, raw_adc_values.t1,
+                            raw_adc_values.t2, raw_adc_values.b1,
+                            raw_adc_values.b2, raw_adc_values.b3);
+    SEND_FILT_THROTTLE_BRAKE(q_tx_can, t2, b2);
+
+
 }

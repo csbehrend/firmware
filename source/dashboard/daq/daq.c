@@ -19,11 +19,7 @@
 
 // BEGIN AUTO VAR DEFS
 daq_variable_t tracked_vars[NUM_VARS] = {
-    {.is_read_only=1, .bit_length=12, .read_var_a=&raw_pedals.t1, .write_var_a=NULL, },
-    {.is_read_only=1, .bit_length=12, .read_var_a=&raw_pedals.t2, .write_var_a=NULL, },
-    {.is_read_only=1, .bit_length=12, .read_var_a=&raw_pedals.b1, .write_var_a=NULL, },
-    {.is_read_only=1, .bit_length=12, .read_var_a=&raw_pedals.b2, .write_var_a=NULL, },
-    {.is_read_only=1, .bit_length=12, .read_var_a=&raw_pedals.b3, .write_var_a=NULL, },
+    {.is_read_only=0, .bit_length=16, .read_var_a=&thtl_limit, .write_var_a=&thtl_limit, },
 };
 // END AUTO VAR DEFS
 
@@ -33,7 +29,8 @@ daq_variable_t tracked_vars[NUM_VARS] = {
 bool daqInit(q_handle_t* tx_a)
 {
     // BEGIN AUTO INIT
-    daqInitBase(tx_a, NUM_VARS, CAN1, ID_DAQ_RESPONSE_DASHBOARD, tracked_vars);
+    uint8_t ret = daqInitBase(tx_a, NUM_VARS, CAN1, ID_DAQ_RESPONSE_DASHBOARD, tracked_vars);
+    return ret;
     // END AUTO INIT
 }
 

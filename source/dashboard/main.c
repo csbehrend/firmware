@@ -11,6 +11,7 @@
 #include "common/phal_L4/spi/spi.h"
 #include "common/phal_L4/tim/tim.h"
 #include "common/phal_L4/dma/dma.h"
+#include "common/faults/faults.h"
 
 /* Module Includes */
 #include "main.h"
@@ -21,7 +22,6 @@
 #include "nextion.h"
 #include "hdd.h"
 
-#include "common/faults/faults.h"
 
 GPIOInitConfig_t gpio_config[] = {
  // Status Indicators
@@ -90,6 +90,8 @@ GPIOInitConfig_t gpio_config[] = {
  GPIO_INIT_ANALOG(LV_3V3_V_SENSE_GPIO_Port, LV_3V3_V_SENSE_Pin),
 };
 
+volatile raw_adc_values_t raw_adc_values;
+
 /* ADC Configuration */
 ADCInitConfig_t adc_config = {
    .clock_prescaler = ADC_CLK_PRESC_6,
@@ -106,13 +108,18 @@ ADCChannelConfig_t adc_channel_config[] = {
    {.channel=BRK_1_ADC_CHNL,  .rank=3, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
    {.channel=BRK_2_ADC_CHNL,  .rank=4, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
    {.channel=BRK_3_ADC_CHNL,  .rank=5, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+   {.channel=SHOCK_POT_L_ADC_CH, .rank=6, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+   {.channel=SHOCK_POT_R_ADC_CH, .rank=7, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+   {.channel=LV_5V_V_SENSE_ADC_CHNL, .rank=8, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+   {.channel=LV_3V3_V_SENSE_ADC_CHNL, .rank=9, .sampling_time=ADC_CHN_SMP_CYCLES_640_5},
+   {.channel=MCU_THERM_ADC_CHNL, .rank=10, .sampling_time=ADC_CHN_SMP_CYCLES_640_5}
 };
-dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &raw_pedals, sizeof(raw_pedals) / sizeof(raw_pedals.t1), 0b01);
+dma_init_t adc_dma_config = ADC1_DMA_CONT_CONFIG((uint32_t) &raw_adc_values, sizeof(raw_adc_values) / sizeof(raw_adc_values.t1), 0b01);
 
 /* USART Confiugration */
-dma_init_t usart_tx_dma_config = USART2_TXDMA_CONT_CONFIG(NULL, 1);
-dma_init_t usart_rx_dma_config = USART2_RXDMA_CONT_CONFIG(NULL, 2);
-usart_init_t huart2 = {
+dma_init_t usart_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+usart_init_t lcd = {
    .baud_rate   = 115200,
    .word_length = WORD_8,
    .stop_bits   = SB_ONE,
@@ -136,20 +143,6 @@ usart_init_t huart2 = {
    .rx_dma_cfg = &usart_rx_dma_config
 };
 
-/* SPI Configuration */
-// TODO:
-// dma_init_t spi_rx_dma_cfg = SPI1_RXDMA_CONT_CONFIG(NULL, 1);
-// dma_init_t spi_tx_dma_cfg = SPI1_TXDMA_CONT_CONFIG(NULL, 2);
-// SPI_InitConfig_t hspi1 = {
-//    .data_rate     = 160000,
-//    .data_len      = 8,
-//    .nss_sw        = true,
-//    .nss_gpio_port = CSB_WHL_GPIO_Port,
-//    .nss_gpio_pin  = CSB_WHL_Pin,
-//    .rx_dma_cfg    = &spi_rx_dma_cfg,
-//    .tx_dma_cfg    = &spi_tx_dma_cfg,
-// };
-
 #define TargetCoreClockrateHz 16000000
 ClockRateConfig_t clock_config = {
    .system_source          = SYSTEM_CLOCK_SRC_HSI,
@@ -160,9 +153,10 @@ ClockRateConfig_t clock_config = {
 };
 
 hdd_value_t hdd = {
-   .curr_addr = 0,
-   .mux_1_val = 0,
-   .mux_2_val = 0
+    .deadband_pos = 0,
+    .intensity_pos = 0,
+    .deadband_prev = 0,
+    .intensity_prev = 0
 };
 
 /* Locals for Clock Rates */
@@ -171,28 +165,32 @@ extern uint32_t APB2ClockRateHz;
 extern uint32_t AHBClockRateHz;
 extern uint32_t PLLClockRateHz;
 
+extern page_t curr_page;
+extern uint8_t tvNotifiValue;
+extern bool knob;
+
+static int32_t ts_ratio;
+static uint16_t ts_cal_1, ts_cal_2;
+
+
 /* Function Prototypes */
 void preflightChecks(void);
 void preflightAnimation(void);
 void heartBeatLED();
-void heartBeatMsg();
-void brakeStatMonitor();
 void canTxUpdate();
 void usartTxUpdate();
-void linkDAQVars();
-void checkStartBtn();
 extern void HardFault_Handler();
 void pollHDD();
-void toggleLights();
+void enableInterrupts();
+void sendMCUTempsVolts();
+void sendVoltageSense();
 
 
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
 q_handle_t q_tx_usart;
 
-
-int main (void)
-{
+int main (void){
 
     /* Data Struct init */
     qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
@@ -217,47 +215,23 @@ int main (void)
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
-    configureAnim(preflightAnimation, preflightChecks, 120, 750);
+    configureAnim(preflightAnimation, preflightChecks, 120, 2500);
 
+    taskCreate(updatePage, 500);
+    taskCreate(updateFaultDisplay, 500);
     taskCreate(heartBeatLED, 500);
     taskCreate(heartBeatTask, 100);
-    taskCreate(updateFaults, 1);
-    // taskCreate(pollHDD, 1000);
-    taskCreate(toggleLights, 500);
-    // taskCreate(heartBeatMsg, 100);
-    // taskCreate(checkStartBtn, 100);
+    taskCreate(pollHDD, 250);
+    taskCreate(update_data_pages, 200);
     taskCreate(pedalsPeriodic, 15);
-    //********* UNCOMMENT END
+    taskCreate(sendMCUTempsVolts, 500);
+    taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
 
-
-    // taskCreate(joystickUpdatePeriodic, 60);
-    // taskCreate(valueUpdatePeriodic, 60);
-
-    //*******UNCOMMENT
-
-    // taskCreate(daqPeriodic, DAQ_UPDATE_PERIOD);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
 
-    //*********UNCOMMENT
 
-    // taskCreate(update_page, 500);
-
-    // taskCreate(update_time, 50);
-    // taskCreate(update_err_pages, 500);
-    // taskCreate(update_info_pages, 200);
-    // taskCreate(update_race_colors, 1000);
-    // taskCreate(updateBarsFast, 75);
-
-    //taskCreate(check_precharge, 100);
-
-    // taskCreate(check_buttons, 100);
-    // taskCreate(check_error, 1000);
-    //Fault Library Enable
-    // taskCreate(heartBeatTask, 100);
-    // taskCreate(updateFaults, 5);
-
-    // taskCreateBackground(usartTxUpdate);
+    taskCreateBackground(usartTxUpdate);
 
     schedStart();
 
@@ -277,16 +251,17 @@ void preflightChecks(void) {
             NVIC_EnableIRQ(CAN1_RX0_IRQn);
            break;
         case 1:
-            // if(!PHAL_initUSART(USART2, &huart2, APB1ClockRateHz))
-            // {
-            //     HardFault_Handler();
-            // }
+            if(!PHAL_initUSART(USART1, &lcd, APB2ClockRateHz))
+            {
+                HardFault_Handler();
+            }
             break;
         case 2:
-            // if(!PHAL_SPI_init(&hspi1))
-            // {
-            //     HardFault_Handler();
-            // }
+            //Enable MCU Internal Thermistor
+            // ADC123_COMMON->CCR |= ADC_CCR_TSEN;
+            // ts_cal_1 = *(TS_CAL1_ADDR);
+            // ts_cal_2 = *(TS_CAL2_ADDR);
+            // ts_ratio = (int32_t)(TS_CAL2_VAL - TS_CAL1_VAL) / (ts_cal_2 - ts_cal_1);
             break;
         case 3:
             // if(!PHAL_initI2C(I2C1))
@@ -303,24 +278,26 @@ void preflightChecks(void) {
             {
                 HardFault_Handler();
             }
+            ADC123_COMMON->CCR |= ADC_CCR_TSEN;
+            ts_cal_1 = *(TS_CAL1_ADDR);
+            ts_cal_2 = *(TS_CAL2_ADDR);
             PHAL_startTxfer(&adc_dma_config);
             PHAL_startADC(ADC1);
             break;
         case 5:
             /* Module Initialization */
             initCANParse(&q_rx_can);
-            // if (daqInit(&q_tx_can, I2C1))
-            // {
-            //     HardFault_Handler();
-            // }
+            if (daqInit(&q_tx_can))
+                HardFault_Handler();
             break;
         case 6:
-            // char *race_page = "extra_info\0";
-            // // PHAL_usartTxDma(USART2, &huart2, (uint16_t *) race_page, strlen(race_page));
-            // set_page("race\0");
-            // char *new_text = "CAR_FUCKED\n";
-            // set_text("t11\0", NXT_TEXT, new_text);
-            // set_value("car_state", "=", 64528);
+            //Initialize HDD
+            pollHDD();
+            enableInterrupts();
+            break;
+        case 7:
+            //Initialize LCD
+            initLCD();
             break;
         default:
             registerPreflightComplete(1);
@@ -345,107 +322,192 @@ void preflightAnimation(void) {
     }
 }
 
-static uint8_t lights;
-void toggleLights() {
-    switch (lights++){
-        case 0:
-            PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, 1);
-            PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, 0);
-            break;
-        case 1:
-            PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, 1);
-            PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 0);
-            break;
-        case 2:
-            PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 1);
-            PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, 0);
-            lights = 0;
-            break;
-    }
-
+void sendMCUTempsVolts() {
+    int16_t calc_temp = (int16_t) ((((int32_t) raw_adc_values.mcu_therm)*ADC_VREF_INT/ TS_VREF - ts_cal_1) *
+                             (TS_CAL2_VAL - TS_CAL1_VAL) / (ts_cal_2 - ts_cal_1) + TS_CAL1_VAL);
+    float lv_5v_sense = ((VREF / 0xFFFU) * raw_adc_values.lv_5v_sense) / LV_5V_SCALE;
+    float lv_3v3_sense = (VREF / 0xFFFU) * raw_adc_values.lv_3v3_sense;
+    // SEND_DASHBOARD_VOLTS_TEMP(q_tx_can, calc_temp, (uint16_t)(lv_5v_sense * 100), (uint16_t)(lv_3v3_sense * 100));
+    SEND_DASHBOARD_VOLTS_TEMP(q_tx_can, raw_adc_values.mcu_therm, raw_adc_values.lv_5v_sense, raw_adc_values.lv_3v3_sense);
 }
 
 void pollHDD() {
-   for (uint8_t i = 0; i < 24; i++) {
-       //BMUX0 == LSB, BMUX4 == LSB
-       PHAL_writeGPIO(B_MUX_0_GPIO_Port, B_MUX_0_Pin, (bool)(i & 0x01));
-       PHAL_writeGPIO(B_MUX_1_GPIO_Port, B_MUX_1_Pin, (bool)(i & 0x02));
-       PHAL_writeGPIO(B_MUX_2_GPIO_Port, B_MUX_2_Pin, (bool)(i & 0x04));
-       PHAL_writeGPIO(B_MUX_3_GPIO_Port, B_MUX_3_Pin, (bool)(i & 0x08));
-       PHAL_writeGPIO(B_MUX_4_GPIO_Port, B_MUX_4_Pin, (bool)(i & 0x10));
-       for (uint8_t j = 0; j < 100; j++) {
-        __asm__("nop");
-       }
-       if (i <= 11) {
-           hdd.mux_1_arr[i] = PHAL_readGPIO(B_MUX_DATA_GPIO_Port, B_MUX_DATA_Pin);
-       }
-       else {
-           hdd.mux_2_arr[i - 12] = PHAL_readGPIO(B_MUX_DATA_GPIO_Port, B_MUX_DATA_Pin);
-       }
-   }
-
-
+    hdd.deadband_prev = hdd.deadband_pos;
+    hdd.intensity_prev = hdd.intensity_pos;
+    for (uint8_t i = 0; i < 24; i++) {
+        //BMUX0 == LSB, BMUX4 == LSB
+        PHAL_writeGPIO(B_MUX_0_GPIO_Port, B_MUX_0_Pin, (bool)(i & 0x01));
+        PHAL_writeGPIO(B_MUX_1_GPIO_Port, B_MUX_1_Pin, (bool)(i & 0x02));
+        PHAL_writeGPIO(B_MUX_2_GPIO_Port, B_MUX_2_Pin, (bool)(i & 0x04));
+        PHAL_writeGPIO(B_MUX_3_GPIO_Port, B_MUX_3_Pin, (bool)(i & 0x08));
+        PHAL_writeGPIO(B_MUX_4_GPIO_Port, B_MUX_4_Pin, (bool)(i & 0x10));
+        for (uint8_t j = 0; j < 10; j++) {
+            __asm__("nop");
+        }
+        if (i <= 11) {
+            if (PHAL_readGPIO(B_MUX_DATA_GPIO_Port, B_MUX_DATA_Pin)) {
+                hdd.deadband_pos = i;
+                if (hdd.deadband_pos != hdd.deadband_prev) {
+                    knob = 1;
+                    knobDisplay();
+                }
+            }
+        }
+        else {
+            if (PHAL_readGPIO(B_MUX_DATA_GPIO_Port, B_MUX_DATA_Pin)) {
+                hdd.intensity_pos = i - 12;
+                if (hdd.intensity_pos != hdd.intensity_prev) {
+                    knob = 0;
+                    knobDisplay();
+                }
+            }
+        }
+    }
 }
 
+static volatile uint32_t last_click_time;
+void EXTI0_IRQHandler() {
+    if (EXTI->PR1 & EXTI_PR1_PIF0) {
+        PHAL_toggleGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin);
+        SEND_START_BUTTON(q_tx_can, 1);
+        EXTI->PR1 |= EXTI_PR1_PIF0;
+    }
+}
 
+void EXTI9_5_IRQHandler() {
+    if (EXTI->PR1 & EXTI_PR1_PIF8) {
+        if (sched.os_ticks - last_click_time < 200) {
+            last_click_time = sched.os_ticks;
+            EXTI->PR1 |= EXTI_PR1_PIF8;
+        }
+        else {
+            last_click_time = sched.os_ticks;
+            moveLeft();
+            EXTI->PR1 |= EXTI_PR1_PIF8;
+        }
+    }
+}
+
+void EXTI15_10_IRQHandler() {
+    if (EXTI->PR1 & EXTI_PR1_PIF12) {
+        if (sched.os_ticks - last_click_time < 300) {
+            last_click_time = sched.os_ticks;
+            EXTI->PR1 |= EXTI_PR1_PIF12;
+        }
+        else {
+            last_click_time = sched.os_ticks;
+            selectItem();
+            EXTI->PR1 |= EXTI_PR1_PIF12;
+        }
+    }
+    else if (EXTI->PR1 & EXTI_PR1_PIF13) {
+        if (sched.os_ticks - last_click_time < 250) {
+            last_click_time = sched.os_ticks;
+            EXTI->PR1 |= EXTI_PR1_PIF13;
+        }
+        else {
+            last_click_time = sched.os_ticks;
+            moveDown();
+            EXTI->PR1 |= EXTI_PR1_PIF13;
+        }
+    }
+    else if (EXTI->PR1 & EXTI_PR1_PIF14) {
+        if (sched.os_ticks - last_click_time < 250) {
+            last_click_time = sched.os_ticks;
+            EXTI->PR1 |= EXTI_PR1_PIF14;
+        }
+        else {
+            last_click_time = sched.os_ticks;
+            moveUp();
+            EXTI->PR1 |= EXTI_PR1_PIF14;
+        }
+    }
+    else if (EXTI->PR1 & EXTI_PR1_PIF15) {
+        if (sched.os_ticks - last_click_time < 250) {
+            last_click_time = sched.os_ticks;
+            EXTI->PR1 |= EXTI_PR1_PIF15;
+        }
+        else {
+            last_click_time = sched.os_ticks;
+            moveRight();
+            EXTI->PR1 |= EXTI_PR1_PIF15;
+        }
+    }
+}
 void heartBeatLED()
 {
     PHAL_toggleGPIO(HEART_LED_GPIO_Port, HEART_LED_Pin);
-    // if (can_data.main_hb.precharge_state)
-    //     PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 0);
-    // else PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 1);
-    // TODO IMD LED
-    // PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, 1);
-    // PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, !can_data.precharge_hb.IMD);
-    // TODO BMS LED
-    // PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, 1);
-    // PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, !can_data.precharge_hb.BMS);
     if ((sched.os_ticks - last_can_rx_time_ms) >= CONN_LED_MS_THRESH)
          PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 0);
     else PHAL_writeGPIO(CONN_LED_GPIO_Port, CONN_LED_Pin, 1);
+    if (!can_data.main_hb.stale && can_data.main_hb.precharge_state) {
+        PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 0);
+    }
+    else {
+        PHAL_writeGPIO(PRCHG_LED_GPIO_Port, PRCHG_LED_Pin, 1);
+    }
+    if (!can_data.precharge_hb.stale) {
+        PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, !can_data.precharge_hb.IMD);
+        PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, !can_data.precharge_hb.BMS);
+    }
+    else {
+        PHAL_writeGPIO(IMD_LED_GPIO_Port, IMD_LED_Pin, 0);
+        PHAL_writeGPIO(BMS_LED_GPIO_Port, BMS_LED_Pin, 0);
+    }
 }
 
-void heartBeatMsg()
-{
-    SEND_DASHBOARD_HB(q_tx_can, pedals.apps_faulted,
-                                    pedals.bse_faulted,
-                                    pedals.apps_brake_faulted);
-}
+void enableInterrupts() {
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
-bool start_prev = false;
-uint8_t start_ct = 0;
-void checkStartBtn()
-{
-   // Button is inverted
-   if (!PHAL_readGPIO(START_BTN_GPIO_Port, START_BTN_Pin))
-   {
-       if (!start_prev) start_ct++;
-       if (start_ct > 3)
-       {
-           if (can_data.main_hb.car_state == CAR_STATE_READY2DRIVE || raw_pedals.b2 > BRAKE_PRESSURE_THRESHOLD)
-           {
-               SEND_START_BUTTON(q_tx_can, 1);
-               start_prev = true;
-               start_ct = 0;
-           }
-       }
-   }
-   else
-   {
-       start_prev = false;
-       start_ct = 0;
-   }
+    //Unmask + Enable interrupt for start button
+    SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PE;
+    EXTI->IMR1 |= EXTI_IMR1_IM0;
+    EXTI->RTSR1 &= ~EXTI_RTSR1_RT0;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT0;
+    NVIC_EnableIRQ(EXTI0_IRQn);
+
+    //Left button
+    SYSCFG->EXTICR[2] |= SYSCFG_EXTICR3_EXTI8_PD;
+    EXTI->IMR1 |= EXTI_IMR1_IM8;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT8;
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+
+    //Ok button
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI12_PB;
+    EXTI->IMR1 |= EXTI_IMR1_IM12;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT12;
+    EXTI->RTSR1 &= ~EXTI_RTSR1_RT12;
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+    //Down Button
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI13_PB;
+    EXTI->IMR1 |= EXTI_IMR1_IM13;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT13;
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+    //Up Button
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI14_PB;
+    EXTI->IMR1 |= EXTI_IMR1_IM14;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT14;
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+    //Right Button
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI15_PB;
+    EXTI->IMR1 |= EXTI_IMR1_IM15;
+    EXTI->FTSR1 |= EXTI_FTSR1_FT15;
+    NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 uint8_t cmd[NXT_STR_SIZE] = {'\0'};
 void usartTxUpdate()
 {
-    if (PHAL_usartTxDmaComplete(&huart2) &&
+    if (PHAL_usartTxDmaComplete(&lcd) &&
         qReceive(&q_tx_usart, cmd) == SUCCESS_G)
     {
-        PHAL_usartTxDma(USART2, &huart2, (uint16_t *) cmd, strlen(cmd));
+        PHAL_usartTxDma(USART1, &lcd, (uint16_t *) cmd, strlen(cmd));
     }
 }
+
 
 void canTxUpdate()
 {

@@ -159,10 +159,11 @@ def configure_node(node_config, node_paths):
 
     # define file mappings
     init_lines = []
-    init_lines.append(f"    daqInitBase(tx_a, NUM_VARS, {node_config['daq_rsp_msg_periph']}, ID_DAQ_RESPONSE_{node_config['node_name'].upper()}, tracked_vars);\n")
+    init_lines.append(f"    uint8_t ret = daqInitBase(tx_a, NUM_VARS, {node_config['daq_rsp_msg_periph']}, ID_DAQ_RESPONSE_{node_config['node_name'].upper()}, tracked_vars);\n")
     if 'files' in node_config:
         for file in node_config['files']:
             init_lines.append(f"    mapMem((uint8_t *) &{file['name']}, sizeof({file['name']}), \"{file['eeprom_lbl']}\", 1);\n")
+    init_lines.append(f"    return ret;\n")
     generator.insert_lines(c_lines, gen_auto_init_start, gen_auto_init_stop, init_lines)
 
 
@@ -190,7 +191,7 @@ def configure_node(node_config, node_paths):
             if ('access_phrase_write' not in var and not var['read_only']):
                 generator.log_error(f"If access phrase is a read function, and not read only, must define access_phrase_write: {var['var_name']}")
                 quit(1)
-            line += f".has_read_func=1, .read_func_a={var['access_phrase']}, "
+            line += f".has_read_func=1, .read_func_a=(read_func_ptr_t){var['access_phrase']}, "
         else:
             line += f".read_var_a=&{var['access_phrase']}, "
         if (not var['read_only']):
