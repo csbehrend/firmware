@@ -39,13 +39,15 @@ GPIOInitConfig_t gpio_config[] = {
     GPIO_INIT_OUTPUT(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, GPIO_OUTPUT_LOW_SPEED)
 };
 
-#define TargetCoreClockrateHz 16000000
+#define TargetCoreClockrateHz 80000000
 ClockRateConfig_t clock_config = {
-    .system_source              =SYSTEM_CLOCK_SRC_HSI,
+    .system_source              =SYSTEM_CLOCK_SRC_PLL,
+    .pll_src                    =PLL_SRC_HSI16,
+    .vco_output_rate_target_hz  =160000000,
     .system_clock_target_hz     =TargetCoreClockrateHz,
     .ahb_clock_target_hz        =(TargetCoreClockrateHz / 1),
-    .apb1_clock_target_hz       =(TargetCoreClockrateHz / (1)),
-    .apb2_clock_target_hz       =(TargetCoreClockrateHz / (1)),
+    .apb1_clock_target_hz       =(TargetCoreClockrateHz / 4),
+    .apb2_clock_target_hz       =(TargetCoreClockrateHz / 4),
 };
 
 /* Locals for Clock Rates */
@@ -63,6 +65,8 @@ void canTxUpdate();
 void blinkTask();
 void PHAL_FaltHandler();
 extern void HardFault_Handler();
+void rt_init();
+void rt_OneStep();
 
 q_handle_t q_tx_can;
 q_handle_t q_rx_can;
@@ -83,8 +87,6 @@ int main (void)
     qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
 
-    rt_init();
-
     /* HAL Initilization */
     if (0 != PHAL_configureClockRates(&clock_config))
         PHAL_FaltHandler();
@@ -102,15 +104,20 @@ int main (void)
 
     /* Module init */
     // bitstreamInit();
-    schedInit(SystemCoreClock); // See Datasheet DS11451 Figure. 4 for clock tree
+    schedInit(APB1ClockRateHz); // See Datasheet DS11451 Figure. 4 for clock tree
     initCANParse(&q_rx_can);
 
     PHAL_writeGPIO(HEARTBEAT_LED_GPIO_Port, HEARTBEAT_LED_Pin, 1);
+    // rt_init();
+    /* Pack model data into RTM */
+    rtM->dwork = &rtDW;
 
+    /* Initialize model */
+    TVS_initialize(rtM);
     /* Task Creation */
     taskCreate(blinkTask, 500);
-    taskCreate(bitstream10Hz, 100);
-    taskCreate(bitstream100Hz, 10);
+    // taskCreate(bitstream10Hz, 100);
+    // taskCreate(bitstream100Hz, 10);
     taskCreate(rt_OneStep, 15);
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
@@ -186,7 +193,7 @@ void CAN1_RX0_IRQHandler()
     }
 }
 
-void rt_init(void)
+void rt_init()
 {
   /* Pack model data into RTM */
   rtM->dwork = &rtDW;
@@ -198,23 +205,15 @@ void rt_init(void)
 void rt_OneStep(void)
 {
   torqueRequest_t torque_r;
-  static boolean_T OverrunFlag = false;
-
-  /* Check for overrun */
-  if (OverrunFlag) {
-    rtmSetErrorStatus(rtM, "Overrun");
-    return;
-  }
-
-  OverrunFlag = true;
+  int16_T time_start;
+  static volatile int16_T time_stop;
 
   /* Step the model */
+  time_start = sched.os_ticks;
+  TV_pp(&rtU);
   TVS_step(rtM, &rtU, &rtY);
+  time_stop = sched.os_ticks - time_start;
 
   torque_r.torque_left = (int16_t)(rtY.Tx[2]*(4095.0/25.0));
   torque_r.torque_right = (int16_t)(rtY.Tx[3]*(4095.0/25.0));
-
-
-  /* Indicate task complete */
-  OverrunFlag = false;
 }

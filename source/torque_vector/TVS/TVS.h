@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'TVS'.
  *
- * Model version                  : 2.417
+ * Model version                  : 2.446
  * Simulink Coder version         : 9.8 (R2022b) 13-May-2022
- * C/C++ source code generated on : Fri Mar 31 15:56:05 2023
+ * C/C++ source code generated on : Sat Apr 22 17:48:26 2023
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: ARM Compatible->ARM Cortex-M
@@ -24,6 +24,7 @@
 #ifndef TVS_COMMON_INCLUDES_
 #define TVS_COMMON_INCLUDES_
 #include "rtwtypes.h"
+#include "bigM_v2_func.h"
 #endif                                 /* TVS_COMMON_INCLUDES_ */
 
 /* Macros for accessing real-time model data structure */
@@ -84,7 +85,7 @@ typedef struct {
   /* Expression: yaw_rate
    * Referenced by: '<S5>/2-D Lookup Table'
    */
-  real_T uDLookupTable_tableData_p[378];
+  real_T uDLookupTable_tableData_p[405];
 
   /* Expression: steering_sweep
    * Referenced by: '<S5>/2-D Lookup Table'
@@ -94,7 +95,7 @@ typedef struct {
   /* Expression: velocity_sweep
    * Referenced by: '<S5>/2-D Lookup Table'
    */
-  real_T uDLookupTable_bp02Data[14];
+  real_T uDLookupTable_bp02Data[15];
 
   /* Computed Parameter: uDLookupTable_maxIndex
    * Referenced by: '<S5>/2-D Lookup Table'
@@ -223,80 +224,7 @@ extern const ConstP rtConstP;
 /* Model entry point functions */
 extern void TVS_initialize(RT_MODEL *const rtM);
 extern void TVS_step(RT_MODEL *const rtM, ExtU *rtU, ExtY *rtY);
-void rt_OneStep(void);
-void rt_init(void);
 
-/*-
- * These blocks were eliminated from the model due to optimizations:
- *
- * Block '<S6>/Data Type Duplicate' : Unused code path elimination
- * Block '<S6>/Data Type Propagation' : Unused code path elimination
- * Block '<S4>/1-D Lookup Table' : Unused code path elimination
- * Block '<S4>/1-D Lookup Table1' : Unused code path elimination
- * Block '<S4>/1-D Lookup Table2' : Unused code path elimination
- * Block '<S4>/1-D Lookup Table3' : Unused code path elimination
- * Block '<S9>/Divide' : Unused code path elimination
- * Block '<S9>/Gain' : Unused code path elimination
- * Block '<S9>/Subtract' : Unused code path elimination
- * Block '<S4>/Constant1' : Unused code path elimination
- * Block '<S4>/Constant2' : Unused code path elimination
- * Block '<S4>/Divide' : Unused code path elimination
- * Block '<S4>/Divide1' : Unused code path elimination
- * Block '<S4>/Sqrt' : Unused code path elimination
- * Block '<S4>/Square' : Unused code path elimination
- * Block '<S4>/Square1' : Unused code path elimination
- * Block '<S10>/1-D Lookup Table' : Unused code path elimination
- * Block '<S10>/1-D Lookup Table1' : Unused code path elimination
- * Block '<S10>/Mean' : Unused code path elimination
- * Block '<S4>/Sum' : Unused code path elimination
- * Block '<S4>/Switch' : Unused code path elimination
- * Block '<S4>/Switch1' : Unused code path elimination
- * Block '<S4>/Switch2' : Unused code path elimination
- * Block '<S12>/Data Type Duplicate' : Unused code path elimination
- * Block '<S12>/Data Type Propagation' : Unused code path elimination
- * Block '<S13>/Data Type Duplicate' : Unused code path elimination
- * Block '<S13>/Data Type Propagation' : Unused code path elimination
- * Block '<S14>/Data Type Duplicate' : Unused code path elimination
- * Block '<S14>/Data Type Propagation' : Unused code path elimination
- * Block '<S5>/Gain5' : Eliminated nontunable gain of 1
- * Block '<S2>/Constant' : Unused code path elimination
- * Block '<S2>/Tx_choose' : Unused code path elimination
- */
-
-/*-
- * The generated code includes comments that allow you to trace directly
- * back to the appropriate location in the model.  The basic format
- * is <system>/block_name, where system is the system number (uniquely
- * assigned by Simulink) and block_name is the name of the block.
- *
- * Note that this particular code originates from a subsystem build,
- * and has its own system numbers different from the parent model.
- * Refer to the system hierarchy for this subsystem below, and use the
- * MATLAB hilite_system command to trace the generated code back
- * to the parent model.  For example,
- *
- * hilite_system('car_model/Control Systems/TVS')    - opens subsystem car_model/Control Systems/TVS
- * hilite_system('car_model/Control Systems/TVS/Kp') - opens and selects block Kp
- *
- * Here is the system hierarchy for this model
- *
- * '<Root>' : 'car_model/Control Systems'
- * '<S1>'   : 'car_model/Control Systems/TVS'
- * '<S2>'   : 'car_model/Control Systems/TVS/Optimization'
- * '<S3>'   : 'car_model/Control Systems/TVS/Power Controller'
- * '<S4>'   : 'car_model/Control Systems/TVS/Traction Controller'
- * '<S5>'   : 'car_model/Control Systems/TVS/Yaw Controller'
- * '<S6>'   : 'car_model/Control Systems/TVS/Power Controller/Throttle Saturation'
- * '<S7>'   : 'car_model/Control Systems/TVS/Traction Controller/Compute SA'
- * '<S8>'   : 'car_model/Control Systems/TVS/Traction Controller/Compute SL'
- * '<S9>'   : 'car_model/Control Systems/TVS/Traction Controller/Compute SL Fake'
- * '<S10>'  : 'car_model/Control Systems/TVS/Traction Controller/Steering Model'
- * '<S11>'  : 'car_model/Control Systems/TVS/Yaw Controller/Integrator'
- * '<S12>'  : 'car_model/Control Systems/TVS/Yaw Controller/Saturation Dynamic'
- * '<S13>'  : 'car_model/Control Systems/TVS/Yaw Controller/Saturation Dynamic1'
- * '<S14>'  : 'car_model/Control Systems/TVS/Yaw Controller/Saturation Dynamic2'
- * '<S15>'  : 'car_model/Control Systems/TVS/Yaw Controller/Windup Hysteresis'
- */
 #endif                                 /* RTW_HEADER_TVS_h_ */
 
 /*
