@@ -5,15 +5,15 @@
 
 void TV_pp(ExtU* rtU)
 {
-rtU->driver_input = CLAMP(can_data.raw_throttle_brake.throttle * DRIVER_INPUT_CALIBRATION, MIN_THROTTLE, MAX_THROTTLE);
+rtU->driver_input = CLAMP(can_data.filt_throttle_brake.throttle * DRIVER_INPUT_CALIBRATION, MIN_THROTTLE, MAX_THROTTLE);
 // rtU->driver_input = CLAMP(4095 * DRIVER_INPUT_CALIBRATION, MIN_THROTTLE, MAX_THROTTLE);
 rtU->theta = CLAMP(can_data.LWS_Standard.LWS_ANGLE * STEERING_ANGLE_CALIBRATION, MIN_STEERING, MAX_STEERING);
 // rtU->theta = CLAMP(0.0 * STEERING_ANGLE_CALIBRATION, MIN_STEERING, MAX_STEERING);
 
 rtU->omega[0] = CLAMP(0.0 * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
 rtU->omega[1] = CLAMP(0.0 * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
-rtU->omega[2] = CLAMP(can_data.rear_wheel_data.left_speed * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
-rtU->omega[3] = CLAMP(can_data.rear_wheel_data.right_speed * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
+rtU->omega[2] = CLAMP(can_data.rear_wheel_speeds.left_speed_mc * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
+rtU->omega[3] = CLAMP(can_data.rear_wheel_speeds.right_speed_mc * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
 // rtU->omega[2] = CLAMP(0.0 * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
 // rtU->omega[3] = CLAMP(0.0 * OMEGA_CALIBRATION, MIN_OMEGA, MAX_OMEGA);
 
@@ -60,12 +60,12 @@ rtU->FZ[1] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 rtU->FZ[2] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 rtU->FZ[3] = CLAMP(1200.0 * FZ_CALIBRATION, MIN_FZ, MAX_FZ);
 
-rtU->angvel_VNED[0] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
-rtU->angvel_VNED[1] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
-rtU->angvel_VNED[2] = CLAMP(0.0 * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
+rtU->angvel_VNED[0] = CLAMP(can_data.sfs_ang_vel.sfs_ang_vel_x * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
+rtU->angvel_VNED[1] = CLAMP(can_data.sfs_ang_vel.sfs_ang_vel_y * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
+rtU->angvel_VNED[2] = CLAMP(can_data.sfs_ang_vel.sfs_ang_vel_z * GYRO_CALIBRATION, MIN_ANG_VEL, MAX_ANG_VEL);
 
-rtU->vel_VNED[0] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
-rtU->vel_VNED[1] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
-rtU->vel_VNED[2] = CLAMP(0.0 * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+rtU->vel_VNED[0] = CLAMP(can_data.gps_velocity.gps_vel_n * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+rtU->vel_VNED[1] = CLAMP(can_data.gps_velocity.gps_vel_e * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
+rtU->vel_VNED[2] = CLAMP(can_data.gps_velocity.gps_vel_d * VEL_CALIBRATION, MIN_VEL, MAX_VEL);
 
 }

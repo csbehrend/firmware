@@ -156,38 +156,42 @@ void CAN1_RX0_IRQHandler()
 {
     if (CAN1->RF0R & CAN_RF0R_FOVR0) // FIFO Overrun
         CAN1->RF0R &= !(CAN_RF0R_FOVR0);
+        CAN1->RF0R &= !(CAN_RF0R_FOVR0);
 
     if (CAN1->RF0R & CAN_RF0R_FULL0) // FIFO Full
+        CAN1->RF0R &= !(CAN_RF0R_FULL0);
         CAN1->RF0R &= !(CAN_RF0R_FULL0);
 
     if (CAN1->RF0R & CAN_RF0R_FMP0_Msk) // Release message pending
     {
         CanMsgTypeDef_t rx;
+        rx.Bus = CAN1;
 
         // Get either StdId or ExtId
-        if (CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR)
+        rx.IDE = CAN_RI0R_IDE & CAN1->sFIFOMailBox[0].RIR;
+        if (rx.IDE)
         {
           rx.ExtId = ((CAN_RI0R_EXID | CAN_RI0R_STID) & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_EXID_Pos;
         }
         else
         {
-          rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_TI0R_STID_Pos;
+          rx.StdId = (CAN_RI0R_STID & CAN1->sFIFOMailBox[0].RIR) >> CAN_RI0R_STID_Pos;
+          rx.ExtId = rx.StdId;
         }
 
         rx.DLC = (CAN_RDT0R_DLC & CAN1->sFIFOMailBox[0].RDTR) >> CAN_RDT0R_DLC_Pos;
 
-        rx.Data[0] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 0) & 0xFF;
-        rx.Data[1] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 8) & 0xFF;
+        rx.Data[0] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 0)  & 0xFF;
+        rx.Data[1] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 8)  & 0xFF;
         rx.Data[2] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 16) & 0xFF;
         rx.Data[3] = (uint8_t) (CAN1->sFIFOMailBox[0].RDLR >> 24) & 0xFF;
-        rx.Data[4] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 0) & 0xFF;
-        rx.Data[5] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 8) & 0xFF;
+        rx.Data[4] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 0)  & 0xFF;
+        rx.Data[5] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 8)  & 0xFF;
         rx.Data[6] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 16) & 0xFF;
         rx.Data[7] = (uint8_t) (CAN1->sFIFOMailBox[0].RDHR >> 24) & 0xFF;
 
-        canProcessRxIRQs(&rx);
-
-        CAN1->RF0R     |= (CAN_RF0R_RFOM0);
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
+        CAN1->RF0R |= (CAN_RF0R_RFOM0);
 
         qSendToBack(&q_rx_can, &rx); // Add to queue (qSendToBack is interrupt safe)
     }
@@ -216,4 +220,6 @@ void rt_OneStep(void)
 
   torque_r.torque_left = (int16_t)(rtY.Tx[2]*(4095.0/25.0));
   torque_r.torque_right = (int16_t)(rtY.Tx[3]*(4095.0/25.0));
+  SEND_TORQUE_REQUEST(q_tx_can,0,0,torque_r.torque_left,torque_r.torque_right);
+
 }

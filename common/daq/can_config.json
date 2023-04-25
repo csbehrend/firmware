@@ -242,12 +242,15 @@
                         {"msg_name": "bitstream_data",    "callback": false, "irq": true},
                         {"msg_name": "bitstream_request", "callback": true, "irq": false},
                         {"msg_name": "LWS_Standard"},
-                        {"msg_name": "raw_throttle_brake"},
                         {"msg_name": "orion_currents_volts"},
                         {"msg_name": "orion_info"},
                         {"msg_name": "rear_controller_temps"},
                         {"msg_name": "front_motor_currents_temps"},
-                        {"msg_name": "rear_motor_currents_temps"}
+                        {"msg_name": "rear_motor_currents_temps"},
+                        {"msg_name": "filt_throttle_brake"},
+                        {"msg_name": "gps_velocity"},
+                        {"msg_name": "sfs_ang_vel"},
+                        {"msg_name": "rear_wheel_speeds"}
                     ]
                 },
                 {

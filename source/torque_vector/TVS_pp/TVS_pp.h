@@ -1,14 +1,15 @@
 #include "TVS.h" 
+#include "common_defs.h"
 
 void TV_pp(ExtU* rtU);
 
 // Calibration
 #define DRIVER_INPUT_CALIBRATION 1.0 / 4095.0
 #define STEERING_ANGLE_CALIBRATION 0.1
-#define OMEGA_CALIBRATION 1.0
+#define OMEGA_CALIBRATION (2*PI)/(60*8.75)
 #define CL_CALIBRATION 1.0
-#define MOTOR_V_CALIBRATION 1.0
-#define MOTOR_I_CALIBRATION 1.0
+#define MOTOR_V_CALIBRATION 0.1
+#define MOTOR_I_CALIBRATION 0.1
 #define BATTERY_V_CALIBRATION 0.1
 #define BATTERY_I_CALIBRATION 1.0
 #define MOTOR_T_CALIBRATION 1.0
