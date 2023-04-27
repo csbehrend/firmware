@@ -203,7 +203,7 @@ int main(void)
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
-    configureAnim(preflightAnimation, preflightChecks, 74, 1000);
+    configureAnim(preflightAnimation, preflightChecks, 74, 2000);
 
     taskCreateBackground(canTxUpdate);
     taskCreateBackground(canRxUpdate);
@@ -212,7 +212,7 @@ int main(void)
 
     taskCreate(sendIMUData, 10);
     taskCreate(collectGPSData, 40);
-    //taskCreate(collectMagData, 40);
+    // taskCreate(collectMagData, 10);
     taskCreate(SFS_MAIN, 10);
 
     /* No Way Home */
@@ -224,6 +224,7 @@ int main(void)
 void preflightChecks(void)
 {
     static uint16_t state;
+    static uint8_t loops;
 
     switch (state++)
     {
@@ -234,7 +235,7 @@ void preflightChecks(void)
         }
         NVIC_EnableIRQ(CAN1_RX0_IRQn);
         break;
-    case 2:
+    case 10:
         if (!BMM150_readID(&bmm_config))
         {
             asm("nop");
@@ -249,11 +250,11 @@ void preflightChecks(void)
     case 250:
         BMI088_powerOnAccel(&bmi_config);
         break;
-    case 500:
+    case 700:
         if (!BMI088_initAccel(&bmi_config))
             HardFault_Handler();
         break;
-    case 700:
+    case 750:
         /* Pack model data into RTM */
         rtM->dwork = &rtDW;
 
@@ -261,13 +262,18 @@ void preflightChecks(void)
         SFS_initialize(rtM);
         break;
     default:
-        if (state > 750)
+        if (state > 800)
         {
             if (!imu_init(&imu_h))
                 HardFault_Handler();
+            if (loops <= 3) {
+                loops++;
+                state = 9;
+                break;
+            }
             initCANParse(&q_rx_can);
             registerPreflightComplete(1);
-            state = 750; // prevent wrap around
+            state = 800; // prevent wrap around
         }
         break;
     }
@@ -309,6 +315,7 @@ void heartBeatLED(void)
 void sendIMUData(void)
 {
     imu_periodic(&imu_h, &rtU);
+    BMM150_readMag(&bmm_config, &rtU);
 }
 
 uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
@@ -317,8 +324,8 @@ uint8_t poll_pvt[] = {"0xB5, 0x62, 0x01, 0x07, 0x00, 0x00, 0x08, 0x19"};
 void collectGPSData(void)
 {
     testGPSHandle.messages_received++;
-    BMI088_readGyro(&bmi_config, &gyro_in);
-    BMI088_readAccel(&bmi_config, &accel_in);
+    // BMI088_readGyro(&bmi_config, &gyro_in);
+    // BMI088_readAccel(&bmi_config, &accel_in);
     testGPSHandle.acceleration = accel_in;
     testGPSHandle.gyroscope = gyro_in;
     parseVelocity(&testGPSHandle, &rtU);
@@ -408,24 +415,6 @@ void CAN1_RX0_IRQHandler()
 
 void SFS_MAIN(void)
 {
-
-    static boolean_T OverrunFlag = false;
-
-    /* Disable interrupts here */
-
-    /* Check for overrun */
-    if (OverrunFlag)
-    {
-        rtmSetErrorStatus(rtM, "Overrun");
-        return;
-    }
-
-    OverrunFlag = true;
-
-    /* Save FPU context here (if necessary) */
-    /* Re-enable timer or interrupt here */
-    /* Set model inputs here */
-
     /* Step the model */
     SFS_step(rtM, &rtU, &rtY);
     // SEND_SFS_POS(q_tx_can, (int16_t)(rtY.pos_VNED[0] * 100),
@@ -438,14 +427,6 @@ void SFS_MAIN(void)
     //              (int16_t)(rtY.ang_NED[1] * 10000), (int16_t)(rtY.ang_NED[2] * 10000), (int16_t)(rtY.ang_NED[3] * 10000));
     SEND_SFS_ANG_VEL(q_tx_can, (int16_t)(rtY.angvel_VNED[0] * 10000),
                      (int16_t)(rtY.angvel_VNED[1] * 10000), (int16_t)(rtY.angvel_VNED[2] * 10000));
-    /* Get model outputs here */
-
-    /* Indicate task complete */
-    OverrunFlag = false;
-
-    /* Disable interrupts here */
-    /* Restore FPU context here (if necessary) */
-    /* Enable interrupts here */
 }
 
 void HardFault_Handler()

@@ -46,15 +46,15 @@ bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
     static uint8_t spi_rx_buff[16] = {0};
     static uint8_t spi_tx_buff[16] = {0};
 
-    // Prepare tx buffer with x axis LSB address
-    spi_tx_buff[0] = (1 << 7) | BMM150_MAG_X_LSB_ADDR;
+    // Wait until spi is available
+    while (PHAL_SPI_busy(bmm->spi))
+        ;
 
     // SPI nss for BMM
     BMM150_selectMag(bmm);
 
-    // Wait until spi is available
-    while (PHAL_SPI_busy(bmm->spi))
-        ;
+    // Prepare tx buffer with x axis LSB address
+    spi_tx_buff[0] = (1 << 7) | BMM150_MAG_X_LSB_ADDR;
 
     // Complete transfer
     PHAL_SPI_transfer_noDMA(bmm->spi, spi_tx_buff, 1, 6, spi_rx_buff);
@@ -79,9 +79,9 @@ bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
     // Main result (needs to be sqrt)
     main_result = (result_value_x * result_value_x) + (result_value_y * result_value_y) + (result_value_y * result_value_y);
 
-    // rtU->mag[0] = CLAMP(((double)result_value_x) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-    // rtU->mag[1] = CLAMP(((double)result_value_y) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
-    // rtU->mag[2] = CLAMP(((double)result_value_z) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    rtU->mag[0] = CLAMP(((double)result_value_x) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    rtU->mag[1] = CLAMP(((double)result_value_y) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
+    rtU->mag[2] = CLAMP(((double)result_value_z) * MAG_CALIBRATION, MIN_MAG, MAX_MAG);
     // if ((rtU->mag[0] > MAX_MAG) || (rtU->mag[0] < MIN_MAG) ||
     //     (rtU->mag[1] > MAX_MAG) || (rtU->mag[1] < MIN_MAG) ||
     //     (rtU->mag[2] > MAX_MAG) || (rtU->mag[2] < MIN_MAG))
@@ -90,6 +90,8 @@ bool BMM150_readMag(BMM150_Handle_t *bmm, ExtU *rtU)
     // }
     // Fault but will always trigger
     // SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
+    SEND_BMM_MAG(q_tx_can, result_value_x, result_value_y, result_value_z);
+
     return true;
 }
 
@@ -177,8 +179,9 @@ bool BMM150_readID(BMM150_Handle_t *bmm)
 
 static inline void BMM150_selectMag(BMM150_Handle_t *bmm)
 {
-    // PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
-    // PHAL_writeGPIO(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, 1);
+    PHAL_writeGPIO(SPI_CS_ACEL_GPIO_Port, SPI_CS_ACEL_Pin, 1);
+    PHAL_writeGPIO(SPI_CS_GYRO_GPIO_Port, SPI_CS_GYRO_Pin, 1);
+    PHAL_writeGPIO(SPI_CS_MAG_GPIO_Port, SPI_CS_MAG_Pin, 0);
     bmm->spi->nss_gpio_port = bmm->mag_csb_gpio_port;
     bmm->spi->nss_gpio_pin = bmm->mag_csb_pin;
 }

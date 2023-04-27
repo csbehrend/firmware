@@ -9,8 +9,8 @@
 #define POS_H_CALIBRATION 0.001
 
 // clamping
-#define MIN_MAG 200.0
-#define MAX_MAG -200.0
+#define MIN_MAG -200.0
+#define MAX_MAG 200.0
 
 #define MIN_GYRO -2.0
 #define MAX_GYRO 2.0
