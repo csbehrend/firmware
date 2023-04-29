@@ -18,6 +18,8 @@
 #include "testbench.h"
 
 GPIOInitConfig_t gpio_config[] = {
+    GPIO_INIT_USART2TX_PA2,
+    GPIO_INIT_USART2RX_PA15,
     GPIO_INIT_ANALOG(FORCE_SENSE0_GPIO_Port, FORCE_SENSE0_Pin),
     /*
     GPIO_INIT_ANALOG(FORCE_SENSE1_GPIO_Port, FORCE_SENSE1_Pin),
@@ -29,8 +31,8 @@ GPIOInitConfig_t gpio_config[] = {
 };
 
 /* USART Configuration */
-dma_init_t usart_tx_dma_config = USART1_TXDMA_CONT_CONFIG(NULL, 1);
-dma_init_t usart_rx_dma_config = USART1_RXDMA_CONT_CONFIG(NULL, 2);
+dma_init_t usart_tx_dma_config = USART2_TXDMA_CONT_CONFIG(NULL, 1);
+dma_init_t usart_rx_dma_config = USART2_RXDMA_CONT_CONFIG(NULL, 2);
 usart_init_t huart = {
     .baud_rate   = 115200,
     .word_length = WORD_8,
@@ -62,12 +64,11 @@ ADCInitConfig_t adc_config = {
 };
 
 ADCChannelConfig_t adc_channel_config[] = {
-    {.channel=FORCE_SENSE0_ADC_CHNL,   .rank=1,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
+    {.channel=FORCE_SENSE0_ADC_CHNL,   .rank=1,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5}
     //{.channel=FORCE_SENSE1_ADC_CHNL,   .rank=2,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
     //{.channel=FORCE_SENSE2_ADC_CHNL,   .rank=3,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5},
     //{.channel=FORCE_SENSE3_ADC_CHNL,   .rank=4,  .sampling_time=ADC_CHN_SMP_CYCLES_2_5}
 };
-
 
 volatile ADCReadings_t force_readings;
 
@@ -123,15 +124,18 @@ extern uint32_t PLLClockRateHz;
 void preflightChecks(void);
 void ledBlink(void);
 void usartTxUpdate();
+void readPeriodic(void);
 extern void HardFault_Handler();
 
 q_handle_t q_tx_usart;
+force_t forceConfig;
 
 int main(void){
 
     //qConstruct(&q_tx_can, sizeof(CanMsgTypeDef_t));
     //qConstruct(&q_rx_can, sizeof(CanMsgTypeDef_t));
-
+    qConstruct(&q_tx_usart, FORCE_MAX_TX_LENGTH);
+    
     /* HAL Initialization */
     
 
@@ -159,15 +163,18 @@ int main(void){
     PHAL_startADC(ADC1);
 
     huart.rx_dma_cfg->circular = true;
-    if(!PHAL_initUSART(USART1, &huart, APB1ClockRateHz))
+    if(!PHAL_initUSART(USART2, &huart, APB1ClockRateHz))
     {
         HardFault_Handler();
     }
+    
+    initForce(&forceConfig, &q_tx_usart);
 
     /* Task Creation */
     schedInit(APB1ClockRateHz);
     taskCreate(ledBlink, 500);
-    //taskCreateBackground(usartTxUpdate);
+    taskCreate(readPeriodic, 15);
+    taskCreateBackground(usartTxUpdate);
 
     schedStart();
 
@@ -210,15 +217,23 @@ void ledBlink()
 }
 
 /* USART Message Handling */
-uint8_t tmp_left[64] = {'\0'};
-uint8_t tmp_right[64] = {'\0'};
+uint8_t tmp_left[FORCE_MAX_TX_LENGTH] = {'\0'};
+uint8_t tmp_right[FORCE_MAX_TX_LENGTH] = {'\0'};
 void usartTxUpdate()
 {
     if (PHAL_usartTxDmaComplete(&huart) &&
         qReceive(&q_tx_usart, tmp_left) == SUCCESS_G)
     {
-        PHAL_usartTxDma(USART, &huart, (uint16_t *) tmp_left, strlen(tmp_left));
+        PHAL_usartTxDma(USART2, &huart, (uint16_t *) tmp_left, strlen(tmp_left));
     }
+}
+
+void readPeriodic(void)
+{
+    //force_t * config = &forceConfig;
+    //ADCReadings_t * readings = &force_readings;
+    //forceSetParam(config, readings);
+    forceSetParam(&forceConfig, &force_readings);
 }
 
 void HardFault_Handler()

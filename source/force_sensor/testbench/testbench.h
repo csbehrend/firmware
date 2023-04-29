@@ -63,12 +63,12 @@ typedef struct
 
 typedef struct
 {
-    uint16_t      init_time;                        // Current init timing
-    uint32_t      last_serial_time;                 // Last time verification of serial mode found
-    uint32_t      last_parse_time;                  // Last time data was succesfully parsed
+    //uint16_t      init_time;                        // Current init timing
+    //uint32_t      last_serial_time;                 // Last time verification of serial mode found
+    //uint32_t      last_parse_time;                  // Last time data was succesfully parsed
 
     // Micro outputs
-    uint16_t      raw;
+    //uint16_t      raw;
 
     q_handle_t   *tx_queue;                         // FIFO for tx commands to be sent via DMA
 } force_t;
@@ -95,8 +95,8 @@ typedef struct
 }__attribute__((packed)) ADCReadings_t;
 
 
-void forceInit(force_t *m, q_handle_t *tx_queue);
+void initForce(force_t *m, q_handle_t *tx_queue);
 //void tiPeriodic(force_t *m);
-void forceSetParam(force_t *mi, ADCReadings_t *adc);
+void forceSetParam(force_t *mi, volatile ADCReadings_t *adc);
 
 #endif
